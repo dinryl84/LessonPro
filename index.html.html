@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LessonPro — DepEd Lesson Plan Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script>
+(function(){function tryLoad(urls,idx){if(idx>=urls.length){window._docxLoadFailed=true;return;}var s=document.createElement('script');s.src=urls[idx];s.onload=function(){window._docxLoadFailed=false;};s.onerror=function(){tryLoad(urls,idx+1);};document.head.appendChild(s);}
+tryLoad(['https://unpkg.com/docx@8.5.0/build/index.umd.js','https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'],0);})();
+</script>
+<script>
+(function(){function tryLoad(urls,idx){if(idx>=urls.length){return;}var s=document.createElement('script');s.src=urls[idx];s.onerror=function(){tryLoad(urls,idx+1);};document.head.appendChild(s);}
+tryLoad(['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js','https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js'],0);})();
+</script>
+<style>
+:root{
+  --navy:#1B2B4B;--blue:#2E5FA3;--sky:#D6E4F7;--accent:#E8A020;
+  --green:#1D9E75;--red:#C0392B;--light:#F4F7FC;--border:#C8D8EE;
+  --text:#1B2B4B;--muted:#5A6E8C;--white:#FFFFFF;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--light);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+header{background:var(--navy);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(27,43,75,.25);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:grid;place-items:center;font-size:18px;}
+.logo-text{font-family:'DM Serif Display',serif;font-size:1.15rem;color:#fff;letter-spacing:.01em;}
+.logo-sub{font-size:.7rem;color:#8BA4CC;font-weight:300;display:block;margin-top:-2px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.header-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#8BA4CC;font-size:.72rem;padding:4px 12px;border-radius:20px;font-family:'DM Mono',monospace;}
+.admin-trigger{background:none;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.3);font-size:.65rem;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .2s;font-family:'DM Mono',monospace;}
+.admin-trigger:hover{color:var(--accent);border-color:var(--accent);}
+
+/* CONTAINER */
+.container{max-width:920px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+
+/* STEPS */
+.steps{display:flex;align-items:center;margin-bottom:2.5rem;}
+.step{display:flex;align-items:center;gap:10px;flex:1;position:relative;}
+.step:not(:last-child)::after{content:'';position:absolute;left:44px;top:50%;width:calc(100% - 44px);height:2px;background:var(--border);transform:translateY(-50%);transition:background .4s;z-index:0;}
+.step.done:not(:last-child)::after{background:var(--green);}
+.step-circle{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:'DM Mono',monospace;font-size:.8rem;font-weight:500;border:2px solid var(--border);background:var(--white);color:var(--muted);flex-shrink:0;position:relative;z-index:1;transition:all .3s;}
+.step.done .step-circle{background:var(--green);border-color:var(--green);color:#fff;}
+.step.active .step-circle{background:var(--blue);border-color:var(--blue);color:#fff;}
+.step-label{font-size:.72rem;color:var(--muted);font-weight:500;white-space:nowrap;}
+.step.active .step-label{color:var(--blue);font-weight:600;}
+.step.done .step-label{color:var(--green);}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:2rem;margin-bottom:1.5rem;box-shadow:0 2px 10px rgba(27,43,75,.06);}
+.card-title{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--navy);margin-bottom:.35rem;display:flex;align-items:center;gap:10px;}
+.card-title .step-num{background:var(--blue);color:#fff;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500;padding:2px 9px;border-radius:20px;}
+.card-desc{font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.5;}
+
+/* FORM */
+label{font-size:.8rem;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;}
+.field{margin-bottom:1rem;}
+input[type=text],input[type=password],select,textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--light);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);outline:none;transition:border .2s;}
+input[type=text]:focus,input[type=password]:focus,select:focus,textarea:focus{border-color:var(--blue);}
+textarea{resize:vertical;min-height:90px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;padding:10px 22px;border-radius:8px;border:none;cursor:pointer;transition:all .2s;}
+.btn-primary{background:var(--blue);color:#fff;}.btn-primary:hover{background:var(--navy);}
+.btn-accent{background:var(--accent);color:#fff;}.btn-accent:hover{filter:brightness(1.1);}
+.btn-green{background:var(--green);color:#fff;}.btn-green:hover{filter:brightness(1.1);}
+.btn-red{background:var(--red);color:#fff;}.btn-red:hover{filter:brightness(1.1);}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--navy);}.btn-outline:hover{border-color:var(--blue);color:var(--blue);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-lg{padding:13px 28px;font-size:.95rem;border-radius:10px;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:1rem;}
+
+/* LOADING */
+.loading-box{text-align:center;padding:3rem 2rem;}
+.spinner{width:48px;height:48px;border:4px solid var(--sky);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-box p{color:var(--muted);font-size:.9rem;}
+.loading-box .loading-title{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--navy);margin-bottom:.5rem;}
+
+/* PREVIEW */
+.preview-section{margin-bottom:2rem;}
+.preview-section h3{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--navy);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);}
+.preview-block{border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:.8rem;margin-bottom:1rem;}
+.preview-row{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--border);}
+.preview-row:last-child{border-bottom:none;}
+.preview-key{background:var(--sky);padding:10px 14px;font-weight:600;color:var(--navy);font-size:.75rem;border-right:1px solid var(--border);}
+.preview-val{padding:10px 14px;color:var(--muted);line-height:1.5;}
+
+/* SLIDE PREVIEW CARDS */
+.slides-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:1rem;}
+.slide-card{background:var(--navy);border-radius:8px;padding:14px;color:#fff;min-height:110px;position:relative;overflow:hidden;}
+.slide-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:var(--accent);}
+.slide-card .slide-num{font-family:'DM Mono',monospace;font-size:.65rem;color:#8BA4CC;margin-bottom:4px;}
+.slide-card .slide-title{font-size:.78rem;font-weight:600;line-height:1.3;color:#fff;}
+.slide-card .slide-desc{font-size:.7rem;color:#8BA4CC;margin-top:4px;line-height:1.4;}
+.slide-blur{filter:blur(4px);opacity:.5;pointer-events:none;}
+.blur-notice{text-align:center;padding:1rem;background:var(--sky);border-radius:8px;font-size:.8rem;color:var(--navy);margin-bottom:1rem;}
+
+/* PAYMENT GATE */
+.payment-gate{background:linear-gradient(135deg,#1B2B4B 0%,#2E5FA3 100%);border-radius:14px;padding:2rem;color:#fff;text-align:center;margin-bottom:1.5rem;}
+.payment-gate h3{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:.5rem;}
+.payment-gate p{color:#8BA4CC;font-size:.85rem;margin-bottom:1.5rem;}
+.price-options{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem;}
+.price-card{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);border-radius:12px;padding:1rem 1.5rem;cursor:pointer;transition:all .2s;text-align:center;}
+.price-card:hover,.price-card.selected{border-color:var(--accent);background:rgba(232,160,32,.15);}
+.price-card .price-amount{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--accent);}
+.price-card .price-label{font-size:.75rem;color:#8BA4CC;margin-top:2px;}
+.gcash-info{background:rgba(255,255,255,.08);border-radius:10px;padding:1rem 1.5rem;margin-bottom:1.5rem;text-align:left;}
+.gcash-info .gcash-label{font-size:.72rem;color:#8BA4CC;font-family:'DM Mono',monospace;margin-bottom:4px;}
+.gcash-info .gcash-number{font-size:1.4rem;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:.05em;}
+.gcash-info .gcash-name{font-size:.8rem;color:#8BA4CC;margin-top:2px;}
+
+/* PAYMENT FORM */
+.payment-form{background:var(--white);border-radius:10px;padding:1.5rem;text-align:left;}
+.payment-form label{color:var(--navy);}
+
+/* CODE ENTRY */
+.code-entry{background:var(--white);border:2px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1rem;}
+.code-entry h4{font-family:'DM Serif Display',serif;color:var(--navy);margin-bottom:.5rem;}
+.code-entry p{font-size:.82rem;color:var(--muted);margin-bottom:1rem;}
+.code-input{font-family:'DM Mono',monospace;font-size:1rem;letter-spacing:.05em;text-transform:uppercase;}
+.code-status{font-size:.8rem;font-weight:600;margin-top:.5rem;}
+.code-ok{color:var(--green);}
+.code-err{color:var(--red);}
+
+/* DOWNLOAD SECTION */
+.download-ready{background:linear-gradient(135deg,#1D9E75 0%,#2E5FA3 100%);border-radius:14px;padding:2rem;color:#fff;text-align:center;}
+.download-ready h3{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:.5rem;}
+.download-ready p{color:rgba(255,255,255,.7);font-size:.85rem;margin-bottom:1.5rem;}
+
+/* TIP */
+.tip{background:#FFF8EC;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 14px;font-size:.8rem;color:#6B4C00;margin-bottom:1rem;line-height:1.5;}
+
+/* BADGE */
+.badge{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;font-family:'DM Mono',monospace;}
+.badge-ok{background:#D4F5E9;color:var(--green);}
+.badge-err{background:#FDECEA;color:var(--red);}
+.badge-info{background:var(--sky);color:var(--blue);}
+
+/* ADMIN PANEL */
+.admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:none;overflow-y:auto;}
+.admin-overlay.open{display:block;}
+.admin-panel{background:var(--white);max-width:600px;margin:40px auto;border-radius:16px;overflow:hidden;}
+.admin-header{background:var(--navy);padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between;}
+.admin-header h2{font-family:'DM Serif Display',serif;color:#fff;font-size:1.2rem;}
+.admin-close{background:none;border:none;color:#8BA4CC;font-size:1.2rem;cursor:pointer;padding:4px;}
+.admin-body{padding:1.5rem 2rem 2rem;}
+.admin-section{margin-bottom:1.5rem;}
+.admin-section h3{font-size:.8rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem;}
+.admin-login{padding:2rem;}
+.code-display{background:var(--navy);border-radius:10px;padding:1rem 1.25rem;text-align:center;margin:1rem 0;}
+.code-display .code-val{font-family:'DM Mono',monospace;font-size:1.3rem;color:var(--accent);letter-spacing:.08em;}
+.code-display .code-lbl{font-size:.68rem;color:#8BA4CC;margin-bottom:4px;font-family:'DM Mono',monospace;}
+.history-item{border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;margin-bottom:.5rem;font-size:.78rem;}
+.history-item .h-code{font-family:'DM Mono',monospace;font-weight:600;color:var(--navy);font-size:.85rem;}
+.history-item .h-meta{color:var(--muted);margin-top:2px;}
+.history-item .h-type{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:4px;}
+.type-lesson{background:#D4F5E9;color:var(--green);}
+.type-ppt{background:var(--sky);color:var(--blue);}
+.type-both{background:#FFF0D4;color:#8B5E00;}
+.h-used{color:var(--red);font-weight:600;}
+.h-unused{color:var(--green);font-weight:600;}
+.status-msg{font-size:.8rem;margin-top:.5rem;padding:6px 10px;border-radius:6px;}
+.status-success{background:#D4F5E9;color:var(--green);}
+.status-error{background:#FDECEA;color:var(--red);}
+.status-loading{background:var(--sky);color:var(--blue);}
+
+/* ALERT FEED */
+.alert-feed{max-height:200px;overflow-y:auto;}
+.alert-item{padding:.6rem .8rem;border-radius:6px;margin-bottom:.4rem;font-size:.78rem;border-left:3px solid var(--accent);background:#FFF8EC;}
+.alert-time{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--muted);}
+
+/* NOTIFICATION SENT */
+.notif-sent{background:#D4F5E9;border:1px solid #A8E6CE;border-radius:8px;padding:.75rem 1rem;font-size:.8rem;color:var(--green);margin-top:.5rem;}
+
+@media(max-width:600px){
+  .row2,.row3{grid-template-columns:1fr;}
+  .slides-preview{grid-template-columns:1fr 1fr;}
+  .price-options{flex-direction:column;}
+  .steps .step-label{display:none;}
+  .container{padding:1.5rem 1rem 3rem;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📋</div>
+    <div>
+      <span class="logo-text">LessonPro</span>
+      <span class="logo-sub">DepEd Lesson Plan & PowerPoint Generator</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-badge">AI-Powered · DepEd Aligned</span>
+    <button class="admin-trigger" onclick="openAdminLogin()">⚙ Admin</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-circle">1</div><span class="step-label">Describe Lesson</span></div>
+    <div class="step" id="s2"><div class="step-circle">2</div><span class="step-label">Generating</span></div>
+    <div class="step" id="s3"><div class="step-circle">3</div><span class="step-label">Preview</span></div>
+    <div class="step" id="s4"><div class="step-circle">4</div><span class="step-label">Pay & Download</span></div>
+  </div>
+
+  <!-- STEP 1: FORM -->
+  <div id="card1">
+    <div class="card">
+      <div class="card-title"><span class="step-num">STEP 1</span> Describe Your Lesson</div>
+      <div class="card-desc">Fill in the details below. AI will generate a complete DepEd-aligned lesson plan and PowerPoint for you.</div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Learning Area / Subject</label>
+          <input type="text" id="f-area" list="area-list" placeholder="e.g. General Mathematics" value="General Mathematics"/>
+          <datalist id="area-list">
+            <option>General Mathematics</option><option>Business Mathematics</option>
+            <option>Statistics and Probability</option><option>Pre-Calculus</option>
+            <option>Basic Calculus</option><option>English</option>
+            <option>Filipino</option><option>Komunikasyon at Pananaliksik</option>
+            <option>Reading and Writing</option><option>Oral Communication</option>
+            <option>21st Century Literature</option><option>Media and Information Literacy</option>
+            <option>Personal Development</option><option>Earth and Life Science</option>
+            <option>Physical Science</option><option>Empowerment Technologies</option>
+            <option>Practical Research 1</option><option>Practical Research 2</option>
+            <option>Physical Education and Health</option><option>World History</option>
+            <option>Understanding Culture, Society and Politics</option>
+            <option>Economics</option><option>Organization and Management</option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label>Grade Level</label>
+          <input type="text" id="f-grade" list="grade-list" placeholder="e.g. Grade 11" value="Grade 11"/>
+          <datalist id="grade-list">
+            <option>Grade 7</option><option>Grade 8</option><option>Grade 9</option>
+            <option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>
+          </datalist>
+        </div>
+      </div>
+
+      <div class="row3">
+        <div class="field">
+          <label>Term</label>
+          <select id="f-quarter"><option>1st Term</option><option>2nd Term</option><option>3rd Term</option></select>
+        </div>
+        <div class="field">
+          <label>Session</label>
+          <input type="text" id="f-session" placeholder="e.g. Session 3 of 5" value="Session 1 of 5"/>
+        </div>
+        <div class="field">
+          <label>Duration</label>
+          <select id="f-duration">
+            <option>1 hour (60 minutes)</option>
+            <option>2 hours (120 minutes)</option>
+            <option>3 hours (180 minutes)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Learning Competency <span style="color:var(--red)">*</span></label>
+        <textarea id="f-lc" rows="3" placeholder="Paste the exact competency from the DepEd curriculum..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Teacher Name</label>
+        <input type="text" id="f-teacher" placeholder="Your full name"/>
+      </div>
+
+      <div class="field">
+        <label>Language of Instruction</label>
+        <select id="f-lang">
+          <option value="English">English</option>
+          <option value="Filipino (Tagalog)">Filipino (Tagalog)</option>
+          <option value="English with Filipino terms where appropriate">English with Filipino terms</option>
+          <option value="Bisaya/Cebuano">Bisaya/Cebuano</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Additional Instructions <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <textarea id="f-extra" rows="2" placeholder="e.g. Use sari-sari store context, include 3 worked examples..."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary btn-lg" onclick="generateLesson()">⚡ Generate Lesson Plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: LOADING -->
+  <div id="card2" style="display:none">
+    <div class="card">
+      <div class="loading-box">
+        <div class="spinner"></div>
+        <div class="loading-title">Generating Your Lesson Plan…</div>
+        <p id="loading-msg">Calling DeepSeek AI — this takes 20–40 seconds…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: PREVIEW -->
+  <div id="card3" style="display:none">
+    <div class="card">
+      <div class="card-title"><span class="step-num">STEP 3</span> Preview Your Lesson Plan</div>
+      <div class="card-desc">Your lesson plan has been generated. Preview it below — then choose what to download.</div>
+
+      <div class="preview-section">
+        <h3>📄 Lesson Plan Summary</h3>
+        <div id="lesson-preview-table"></div>
+      </div>
+
+      <div class="preview-section">
+        <h3>📊 PowerPoint Slides Preview <span style="font-size:.72rem;font-weight:400;color:var(--muted)">(first 5 slides shown — rest locked)</span></h3>
+        <div id="slides-preview" class="slides-preview"></div>
+        <div class="blur-notice">🔒 <strong>Full slides unlocked after payment.</strong> Download includes 30+ classroom-ready slides with answer reveals.</div>
+      </div>
+    </div>
+
+    <!-- PAYMENT GATE -->
+    <div class="payment-gate">
+      <h3>📥 Ready to Download?</h3>
+      <p>Choose what you need and send payment via GCash. You'll receive a one-time download code.</p>
+
+      <div class="price-options">
+        <div class="price-card" onclick="selectProduct('lesson')" id="pc-lesson">
+          <div class="price-amount">₱10</div>
+          <div class="price-label">📄 Lesson Plan<br><small style="color:#666">Word Document (.docx)</small></div>
+        </div>
+        <div class="price-card" onclick="selectProduct('ppt')" id="pc-ppt">
+          <div class="price-amount">₱15</div>
+          <div class="price-label">📊 PowerPoint<br><small style="color:#666">Presentation (.pptx)</small></div>
+        </div>
+        <div class="price-card" onclick="selectProduct('both')" id="pc-both">
+          <div class="price-amount">₱18</div>
+          <div class="price-label">📦 Both Files<br><small style="color:#666">Best value!</small></div>
+        </div>
+      </div>
+
+      <div class="gcash-info">
+        <div class="gcash-label">SEND GCASH PAYMENT TO:</div>
+        <div class="gcash-number">09157026803</div>
+        <div class="gcash-name">Dinryl P. Basigsig</div>
+      </div>
+
+      <div class="payment-form">
+        <div class="tip">After sending GCash, fill in your details below. The seller will be notified and send you a download code via Messenger or Viber.</div>
+        <div class="field">
+          <label>Your Name</label>
+          <input type="text" id="buyer-name" placeholder="Your full name"/>
+        </div>
+        <div class="field">
+          <label>GCash Reference Number</label>
+          <input type="text" id="buyer-ref" placeholder="e.g. 1234567890"/>
+        </div>
+        <div class="field">
+          <label>Your Messenger / Viber / Contact</label>
+          <input type="text" id="buyer-contact" placeholder="e.g. fb.com/yourname or 09xxxxxxxxx"/>
+        </div>
+        <div id="notif-result"></div>
+        <div class="btn-row">
+          <button class="btn btn-accent btn-lg" onclick="submitPayment()" id="pay-btn">📨 I've Paid — Notify Seller</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CODE ENTRY -->
+    <div class="code-entry" id="code-section">
+      <h4>🔑 Enter Your Download Code</h4>
+      <p>Once you receive your code from the seller, enter it below to unlock your download.</p>
+      <div class="field">
+        <input type="text" class="code-input" id="code-input" placeholder="LESS-XXXX-XXXX-XXXX" maxlength="19" oninput="checkCode(this.value)"/>
+        <div id="code-status" class="code-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: DOWNLOAD -->
+  <div id="card4" style="display:none">
+    <div class="download-ready">
+      <h3>🎉 Code Accepted! Download Ready</h3>
+      <p>Your payment has been verified. Download your files below.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;">
+        <button class="btn btn-accent btn-lg" id="docx-btn" onclick="generateDOCX()" style="display:none">📄 Download Word (.docx)</button>
+        <button class="btn btn-green btn-lg" id="pptx-btn" onclick="generatePPTX()" style="display:none">📊 Download PowerPoint (.pptx)</button>
+      </div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.6);margin-top:.5rem">Code is single-use. Please download now.</div>
+      <div style="margin-top:1.25rem">
+        <button class="btn btn-outline" onclick="startOver()" style="color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.2)">🔄 Generate Another Lesson Plan</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ADMIN OVERLAY -->
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <h2>⚙ LessonPro Admin</h2>
+      <button class="admin-close" onclick="closeAdmin()">✕</button>
+    </div>
+
+    <!-- Login -->
+    <div id="admin-login" class="admin-login">
+      <div class="field">
+        <label>Admin Password</label>
+        <input type="password" id="admin-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter')verifyAdmin()"/>
+      </div>
+      <div id="admin-login-err" style="font-size:.8rem;color:var(--red);margin-bottom:.5rem;"></div>
+      <button class="btn btn-primary" onclick="verifyAdmin()">🔐 Login</button>
+    </div>
+
+    <!-- Panel -->
+    <div id="admin-content" style="display:none">
+      <div class="admin-body">
+
+        <!-- Viewer Alerts -->
+        <div class="admin-section">
+          <h3>🔔 Recent Buyer Alerts</h3>
+          <div class="alert-feed" id="alert-feed">
+            <div style="color:var(--muted);font-size:.8rem;">No alerts yet. Alerts appear here when buyers submit payment.</div>
+          </div>
+        </div>
+
+        <!-- Code Generator -->
+        <div class="admin-section">
+          <h3>🔑 Generate Download Code</h3>
+          <div class="field">
+            <label>Buyer Name</label>
+            <input type="text" id="adm-buyer" placeholder="Buyer's name"/>
+          </div>
+          <div class="field">
+            <label>Product</label>
+            <select id="adm-product">
+              <option value="lesson">Lesson Plan only (₱10)</option>
+              <option value="ppt">PowerPoint only (₱15)</option>
+              <option value="both">Both files (₱18)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>GCash Ref / Notes</label>
+            <input type="text" id="adm-notes" placeholder="GCash ref number"/>
+          </div>
+          <button class="btn btn-primary" id="adm-gen-btn" onclick="adminGenerateCode()">⚡ Generate & Save Code</button>
+          <div id="adm-status" class="status-msg" style="display:none"></div>
+
+          <div class="code-display" id="adm-code-display" style="display:none">
+            <div class="code-lbl">DOWNLOAD CODE — SEND TO BUYER</div>
+            <div class="code-val" id="adm-code-val">LESS-XXXX-XXXX-XXXX</div>
+          </div>
+          <button class="btn btn-outline" id="adm-copy-btn" onclick="adminCopyCode()" style="display:none;margin-top:.5rem;width:100%">📋 Copy Code</button>
+        </div>
+
+        <!-- Issued Codes History -->
+        <div class="admin-section">
+          <h3>📋 Issued Codes History</h3>
+          <div id="adm-history"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   CONFIG
+════════════════════════════════════════════ */
+const BACKEND_URL    = 'https://pptprov2-backend.onrender.com';
+const TG_TOKEN       = '8265618627:AAEu6dDSgpXMejI3i749lPEpgnq3hIeSFqU';
+const TG_CHAT_ID     = '1926202919';
+const GCASH_NUMBER   = '09157026803';
+const GCASH_NAME     = 'Dinryl P. Basigsig';
+const ADMIN_PASSWORD = 'R@nja@ndin8411';
+const SUPABASE_URL   = 'https://qfuysmnnlaedabjdlkogi.supabase.co';
+const SUPABASE_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmdXlzbW5sYWVkYWJqZGxrb2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNTU5MTUsImV4cCI6MjA4OTgzMTkxNX0.dKLPEkNxVxC74pKC4jxgJsjwuNT3QWNcoC0Rqook6Mk';
+
+const SECRET    = 2025;
+const SAFE_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+let parsedData     = null;
+let selectedProduct = null;
+let unlockedProduct = null;
+let adminLoggedIn  = false;
+let currentAdminCode = null;
+let adminAlerts    = JSON.parse(localStorage.getItem('lp_alerts') || '[]');
+
+/* ════════════════════════════════════════════
+   STEP HELPERS
+════════════════════════════════════════════ */
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('s'+i);
+    el.classList.remove('active','done');
+    if(i < n) el.classList.add('done');
+    else if(i === n) el.classList.add('active');
+  });
+  ['card1','card2','card3','card4'].forEach((id,i) => {
+    document.getElementById(id).style.display = (i+1 === n) ? 'block' : 'none';
+  });
+  // card3 stays shown after preview + payment
+  if(n === 4) document.getElementById('card3').style.display = 'block';
+}
+
+/* ════════════════════════════════════════════
+   PRODUCT SELECTION
+════════════════════════════════════════════ */
+function selectProduct(type) {
+  selectedProduct = type;
+  ['lesson','ppt','both'].forEach(t => {
+    document.getElementById('pc-'+t).classList.toggle('selected', t === type);
+  });
+}
+
+/* ════════════════════════════════════════════
+   TELEGRAM NOTIFY
+════════════════════════════════════════════ */
+async function sendTelegram(msg) {
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id: TG_CHAT_ID, text: msg, parse_mode:'HTML'})
+    });
+  } catch(e) { console.warn('Telegram error:', e); }
+}
+
+/* ════════════════════════════════════════════
+   DEEPSEEK GENERATE
+════════════════════════════════════════════ */
+async function generateLesson() {
+  const area    = document.getElementById('f-area').value.trim();
+  const grade   = document.getElementById('f-grade').value.trim();
+  const quarter = document.getElementById('f-quarter').value;
+  const session = document.getElementById('f-session').value.trim();
+  const duration= document.getElementById('f-duration').value;
+  const lc      = document.getElementById('f-lc').value.trim();
+  const teacher = document.getElementById('f-teacher').value.trim();
+  const lang    = document.getElementById('f-lang').value;
+  const extra   = document.getElementById('f-extra').value.trim();
+
+  if(!lc){ alert('Please enter the Learning Competency.'); return; }
+
+  setStep(2);
+
+  // Notify Telegram — early alert before payment
+  await sendTelegram(`👁 <b>LessonPro — Someone is generating a lesson plan</b>\n\n📚 Subject: ${area}\n🎓 Grade: ${grade}\n📝 LC: ${lc.slice(0,80)}...\n\n⏳ Wait for their payment notification.`);
+
+  try {
+    document.getElementById('loading-msg').textContent = 'AI is writing your lesson plan — this takes 20–40 seconds…';
+
+    const res = await fetch(`${BACKEND_URL}/api/generate-lesson`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area, grade, quarter, session, duration, lc, teacher, lang, extra })
+    });
+
+    if(!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Backend error');
+    }
+
+    const data = await res.json();
+    if(!data.success || !data.lesson) throw new Error('Invalid response from server.');
+
+    parsedData = data.lesson;
+    renderPreview();
+    setStep(3);
+
+  } catch(err) {
+    setStep(1);
+    alert('Error generating lesson plan:\n\n' + err.message + '\n\nPlease try again in a few seconds.');
+    console.error(JSON.stringify(err));
+  }
+}
+
+/* ════════════════════════════════════════════
+   RENDER PREVIEW
+════════════════════════════════════════════ */
+function renderPreview() {
+  const d = parsedData;
+
+  // Lesson summary table
+  const rows = [
+    ['Lesson Title', d.lessonTitle],
+    ['Learning Area', d.learningArea],
+    ['Grade & Term', `${d.gradeLevel} · ${d.quarter}`],
+    ['Duration', d.duration],
+    ['Competency', d.learningCompetency],
+    ['Objectives', (d.objectives||[]).map((o,i)=>`${i+1}. ${o}`).join('\n')],
+    ['Pre-lesson Hook', d.prelesson?.title || ''],
+    ['Flow Phases', (d.flow||[]).map(f=>f.phase).join(' → ')],
+    ['Exit Ticket', d.wrapup?.exitTicket?.question || ''],
+    ['Answer Key Items', `${(d.answerKey||[]).length} items`],
+  ];
+
+  document.getElementById('lesson-preview-table').innerHTML = `
+    <div class="preview-block">
+      ${rows.map(([k,v])=>`
+        <div class="preview-row">
+          <div class="preview-key">${k}</div>
+          <div class="preview-val">${String(v||'').replace(/\n/g,'<br>')}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // Slides preview (first 5 visible, rest blurred)
+  const slideData = buildSlideList(d);
+  const container = document.getElementById('slides-preview');
+  container.innerHTML = slideData.map((sl, i) => `
+    <div class="slide-card ${i >= 5 ? 'slide-blur' : ''}">
+      <div class="slide-num">SLIDE ${i+1}</div>
+      <div class="slide-title">${sl.title}</div>
+      <div class="slide-desc">${sl.desc}</div>
+    </div>`).join('');
+}
+
+function buildSlideList(d) {
+  const slides = [];
+  slides.push({title:'Title Slide', desc: d.lessonTitle});
+  slides.push({title:'Learning Objectives', desc: (d.objectives||[]).slice(0,2).join('; ')});
+  slides.push({title:'Competency & Standards', desc: d.learningCompetency?.slice(0,60)+'...'});
+  slides.push({title:`Pre-Lesson Hook · ${d.prelesson?.duration||''}`, desc: d.prelesson?.title||''});
+
+  (d.flow||[]).forEach(phase => {
+    slides.push({title: phase.phase, desc: `${phase.title} · ${phase.duration}`});
+    if(phase.activities?.length) slides.push({title:`${phase.phase} — Activities`, desc: phase.activities[0]?.slice(0,60)+'...'});
+    (phase.workedExamples||[]).forEach((ex,i) => {
+      slides.push({title:`Worked Example ${i+1} — ${ex.title}`, desc: ex.problem?.slice(0,50)+'...'});
+      slides.push({title:`Worked Example ${i+1} — Answer Revealed`, desc:`Answer: ${ex.answer}`});
+    });
+    (phase.problems||[]).forEach((pr,i) => {
+      slides.push({title:`${phase.phase} — Problem ${i+1}`, desc: pr.problem?.slice(0,50)+'...'});
+      slides.push({title:`Problem ${i+1} — Answer Revealed`, desc:`Answer: ${pr.answer}`});
+    });
+  });
+
+  slides.push({title:'Wrap-Up & Exit Ticket', desc: d.wrapup?.exitTicket?.question?.slice(0,50)||''});
+  slides.push({title:'Exit Ticket Answer Revealed', desc: d.wrapup?.exitTicket?.answer||''});
+  slides.push({title:'Assessment & Homework', desc: (d.formativeAssessment||[]).slice(0,1).join('')?.slice(0,50)||''});
+  (d.answerKey||[]).slice(0,2).forEach((_, i) => slides.push({title:`Answer Key (Part ${i+1})`, desc:'Complete answer key table'}));
+  slides.push({title:'End of Lesson', desc: d.lessonTitle});
+
+  return slides;
+}
+
+/* ════════════════════════════════════════════
+   SUBMIT PAYMENT NOTIFICATION
+════════════════════════════════════════════ */
+async function submitPayment() {
+  if(!selectedProduct) { alert('Please select a product first (Lesson Plan, PowerPoint, or Both).'); return; }
+
+  const name    = document.getElementById('buyer-name').value.trim();
+  const ref     = document.getElementById('buyer-ref').value.trim();
+  const contact = document.getElementById('buyer-contact').value.trim();
+
+  if(!name || !ref) { alert('Please enter your name and GCash reference number.'); return; }
+
+  const prices   = {lesson:'₱10', ppt:'₱15', both:'₱18'};
+  const labels   = {lesson:'Lesson Plan (.docx)', ppt:'PowerPoint (.pptx)', both:'Both Files'};
+  const btn      = document.getElementById('pay-btn');
+  const resultEl = document.getElementById('notif-result');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Sending notification…';
+
+  const d = parsedData;
+  const msg = `💰 <b>LessonPro — New Payment!</b>
+
+👤 Buyer: <b>${name}</b>
+📱 Contact: ${contact}
+📦 Product: <b>${labels[selectedProduct]}</b>
+💵 Amount: <b>${prices[selectedProduct]}</b>
+🧾 GCash Ref: <code>${ref}</code>
+
+📚 Lesson: ${d?.lessonTitle || 'Unknown'}
+🎓 Grade: ${d?.gradeLevel || ''}
+📝 Subject: ${d?.learningArea || ''}
+
+⚡ Open Admin panel → Generate code → Send to buyer`;
+
+  await sendTelegram(msg);
+
+  // Save alert locally for admin panel
+  const alert = { name, ref, contact, product: selectedProduct, lesson: d?.lessonTitle||'', time: new Date().toLocaleString('en-PH') };
+  adminAlerts.unshift(alert);
+  localStorage.setItem('lp_alerts', JSON.stringify(adminAlerts));
+
+  resultEl.innerHTML = `<div class="notif-sent">✅ Seller has been notified via Telegram! Please wait for your download code — it will be sent to: <strong>${contact}</strong></div>`;
+  btn.textContent = '✅ Notification Sent';
+  btn.disabled = true;
+
+  renderAdminAlerts();
+}
+
+/* ════════════════════════════════════════════
+   CODE VALIDATION (OFFLINE CHECKSUM)
+════════════════════════════════════════════ */
+function computeChecksum(seg1, seg2) {
+  const combined = seg1 + seg2;
+  let hash = SECRET;
+  for(let i=0; i<combined.length; i++) {
+    hash = (hash * 31 + combined.charCodeAt(i)) % 1679616;
+  }
+  let result = '';
+  let h = hash;
+  for(let i=0; i<4; i++) {
+    result = SAFE_CHARS[h % SAFE_CHARS.length] + result;
+    h = Math.floor(h / SAFE_CHARS.length);
+  }
+  return result;
+}
+
+function randomSegment() {
+  let seg = '';
+  for(let i=0; i<4; i++) seg += SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)];
+  return seg;
+}
+
+async function validateCodeOnline(code) {
+  // Check Supabase if code exists and is not used
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/lesson_codes?code=eq.${code}&select=is_used,product_type`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    const data = await res.json();
+    if(!data || data.length === 0) return { valid: false, reason: 'Code not found in database.' };
+    if(data[0].is_used) return { valid: false, reason: 'This code has already been used.' };
+    return { valid: true, product: data[0].product_type };
+  } catch(e) {
+    return { valid: null, reason: 'Could not verify online — checksum passed.' };
+  }
+}
+
+async function checkCode(raw) {
+  const code = raw.replace(/[^A-Za-z0-9-]/g,'').toUpperCase();
+  const el   = document.getElementById('code-status');
+
+  document.getElementById('code-input').value = code;
+
+  if(code.length < 19) { el.textContent = ''; return; }
+
+  const parts = code.split('-');
+  if(parts.length !== 4 || parts[0] !== 'LESS' || parts[1].length !== 4 || parts[2].length !== 4 || parts[3].length !== 4) {
+    el.className = 'code-status code-err';
+    el.textContent = '❌ Invalid code format';
+    return;
+  }
+
+  const expected = computeChecksum(parts[1], parts[2]);
+  if(parts[3] !== expected) {
+    el.className = 'code-status code-err';
+    el.textContent = '❌ Invalid code — checksum failed';
+    return;
+  }
+
+  // Checksum passed — verify online
+  el.className = 'code-status';
+  el.textContent = '⏳ Verifying code…';
+
+  const result = await validateCodeOnline(code);
+
+  if(result.valid === false) {
+    el.className = 'code-status code-err';
+    el.textContent = `❌ ${result.reason}`;
+    return;
+  }
+
+  // Mark as used in Supabase
+  if(result.valid === true) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/lesson_codes?code=eq.${code}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Prefer: 'return=minimal'
+        },
+        body: JSON.stringify({ is_used: true, used_at: new Date().toISOString() })
+      });
+    } catch(e) { /* non-blocking */ }
+  }
+
+  el.className = 'code-status code-ok';
+  el.textContent = '✅ Code valid! Unlocking download…';
+
+  // Unlock the right buttons
+  unlockedProduct = result.product || selectedProduct || 'both';
+  setTimeout(() => unlockDownload(), 800);
+}
+
+function unlockDownload() {
+  setStep(4);
+  document.getElementById('card3').style.display = 'block';
+
+  const showDocx = ['lesson','both'].includes(unlockedProduct);
+  const showPptx = ['ppt','both'].includes(unlockedProduct);
+
+  document.getElementById('docx-btn').style.display = showDocx ? 'inline-flex' : 'none';
+  document.getElementById('pptx-btn').style.display = showPptx ? 'inline-flex' : 'none';
+
+  document.getElementById('card4').scrollIntoView({behavior:'smooth'});
+}
+
+/* ════════════════════════════════════════════
+   ADMIN PANEL
+════════════════════════════════════════════ */
+function openAdminLogin() {
+  document.getElementById('admin-overlay').classList.add('open');
+  if(!adminLoggedIn) {
+    document.getElementById('admin-login').style.display = 'block';
+    document.getElementById('admin-content').style.display = 'none';
+  }
+}
+
+function closeAdmin() {
+  document.getElementById('admin-overlay').classList.remove('open');
+}
+
+function verifyAdmin() {
+  const pass = document.getElementById('admin-pass').value;
+  if(pass === ADMIN_PASSWORD) {
+    adminLoggedIn = true;
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-content').style.display = 'block';
+    renderAdminAlerts();
+    renderAdminHistory();
+  } else {
+    document.getElementById('admin-login-err').textContent = '❌ Wrong password.';
+  }
+}
+
+function renderAdminAlerts() {
+  const el = document.getElementById('alert-feed');
+  if(!adminAlerts.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;">No alerts yet.</div>';
+    return;
+  }
+  el.innerHTML = adminAlerts.slice(0,10).map(a => `
+    <div class="alert-item">
+      <div class="alert-time">${a.time}</div>
+      <strong>${a.name}</strong> — ${a.product === 'both' ? 'Both Files' : a.product === 'lesson' ? 'Lesson Plan' : 'PowerPoint'}
+      · GCash ref: <code>${a.ref}</code>
+      <br>📱 ${a.contact} · 📚 ${a.lesson}
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   ADMIN CODE GENERATOR
+════════════════════════════════════════════ */
+async function adminGenerateCode() {
+  const buyer   = document.getElementById('adm-buyer').value.trim();
+  const product = document.getElementById('adm-product').value;
+  const notes   = document.getElementById('adm-notes').value.trim();
+  const btn     = document.getElementById('adm-gen-btn');
+  const statusEl = document.getElementById('adm-status');
+
+  if(!buyer) { alert('Please enter the buyer name.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+  statusEl.style.display = 'block';
+  statusEl.className = 'status-msg status-loading';
+  statusEl.textContent = 'Generating and saving code to Supabase…';
+
+  const seg1     = randomSegment();
+  const seg2     = randomSegment();
+  const checksum = computeChecksum(seg1, seg2);
+  const code     = `LESS-${seg1}-${seg2}-${checksum}`;
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/lesson_codes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify({
+        code,
+        buyer_name: buyer,
+        product_type: product,
+        notes,
+        is_used: false
+      })
+    });
+
+    if(!res.ok) throw new Error(await res.text());
+
+    statusEl.className = 'status-msg status-success';
+    statusEl.textContent = '✅ Code saved to Supabase! Ready to send.';
+    currentAdminCode = code;
+
+    document.getElementById('adm-code-val').textContent = code;
+    document.getElementById('adm-code-display').style.display = 'block';
+    document.getElementById('adm-copy-btn').style.display = 'block';
+
+    // Save to local history
+    const history = getAdminHistory();
+    history.unshift({ code, buyer, product, notes, date: new Date().toLocaleString('en-PH'), synced: true });
+    localStorage.setItem('lp_codes', JSON.stringify(history));
+    renderAdminHistory();
+
+  } catch(e) {
+    statusEl.className = 'status-msg status-error';
+    statusEl.textContent = '⚠️ Supabase save failed: ' + e.message;
+    currentAdminCode = code;
+    document.getElementById('adm-code-val').textContent = code;
+    document.getElementById('adm-code-display').style.display = 'block';
+    document.getElementById('adm-copy-btn').style.display = 'block';
+  }
+
+  document.getElementById('adm-buyer').value = '';
+  document.getElementById('adm-notes').value = '';
+  btn.disabled = false;
+  btn.textContent = '⚡ Generate & Save Code';
+}
+
+function adminCopyCode() {
+  if(!currentAdminCode) return;
+  navigator.clipboard.writeText(currentAdminCode).then(() => {
+    const btn = document.getElementById('adm-copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
+  });
+}
+
+function getAdminHistory() {
+  try { return JSON.parse(localStorage.getItem('lp_codes') || '[]'); } catch { return []; }
+}
+
+function renderAdminHistory() {
+  const history = getAdminHistory();
+  const el = document.getElementById('adm-history');
+  if(!history.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;">No codes issued yet.</div>';
+    return;
+  }
+  const labels = {lesson:'Lesson Plan', ppt:'PowerPoint', both:'Both Files'};
+  const typeClass = {lesson:'type-lesson', ppt:'type-ppt', both:'type-both'};
+  el.innerHTML = history.slice(0,15).map(item => `
+    <div class="history-item">
+      <div class="h-code">${item.code}</div>
+      <span class="h-type ${typeClass[item.product]||'type-lesson'}">${labels[item.product]||item.product}</span>
+      <div class="h-meta">${item.buyer} · ${item.date}${item.notes ? ' · '+item.notes : ''}</div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   START OVER
+════════════════════════════════════════════ */
+function startOver() {
+  parsedData     = null;
+  selectedProduct = null;
+  unlockedProduct = null;
+  document.getElementById('buyer-name').value    = '';
+  document.getElementById('buyer-ref').value     = '';
+  document.getElementById('buyer-contact').value = '';
+  document.getElementById('code-input').value    = '';
+  document.getElementById('code-status').textContent = '';
+  document.getElementById('notif-result').innerHTML  = '';
+  document.getElementById('pay-btn').disabled = false;
+  document.getElementById('pay-btn').textContent = '📨 I\'ve Paid — Notify Seller';
+  ['pc-lesson','pc-ppt','pc-both'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  setStep(1);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ════════════════════════════════════════════
+   DOCX GENERATION (from original LessonPlanGeneratorFinal)
+════════════════════════════════════════════ */
+async function generateDOCX() {
+  if(!parsedData){ alert('No lesson plan data.'); return; }
+  const dlBtn = document.getElementById('docx-btn');
+  dlBtn.disabled = true; dlBtn.textContent = '⏳ Generating…';
+
+  try {
+    if(typeof docx === 'undefined') throw new Error('docx library not loaded. Please reload the page.');
+
+    const d = parsedData;
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, BorderStyle, ShadingType, VerticalAlign } = docx;
+
+    const W = 9360;
+    const tb = { style: BorderStyle.SINGLE, size: 4, color: 'AAAAAA' };
+    const bds = { top:tb, bottom:tb, left:tb, right:tb };
+    const hFill = { fill:'2E4F8A', type:ShadingType.CLEAR };
+    const sFill = { fill:'D6E4F7', type:ShadingType.CLEAR };
+    const lFill = { fill:'F2F7FD', type:ShadingType.CLEAR };
+    const wFill = { fill:'FFFFFF', type:ShadingType.CLEAR };
+
+    const pp = (text, bold=false, italic=false, size=18, color='000000') =>
+      new Paragraph({ spacing:{before:36,after:36}, children:[new TextRun({text:String(text||''),bold,italic,size,color,font:'Arial'})] });
+    const bl = (text) =>
+      new Paragraph({ bullet:{level:0}, spacing:{before:18,after:18}, children:[new TextRun({text:String(text||''),size:18,font:'Arial'})] });
+    const sp = () => new Paragraph({ spacing:{before:60,after:60}, children:[new TextRun('')] });
+
+    const mkCell = (children, fill, width) => new TableCell({
+      borders:bds, width:{size:width,type:WidthType.DXA}, shading:fill,
+      margins:{top:80,bottom:80,left:130,right:130}, verticalAlign:VerticalAlign.TOP,
+      children: Array.isArray(children) ? children : [pp(children)]
+    });
+    const lblCell = (text, width) => new TableCell({
+      borders:bds, width:{size:width,type:WidthType.DXA}, shading:sFill,
+      margins:{top:80,bottom:80,left:130,right:130}, verticalAlign:VerticalAlign.TOP,
+      children:[new Paragraph({children:[new TextRun({text,bold:true,size:18,color:'1F3864',font:'Arial'})]})]
+    });
+    const hdrCell = (text, width) => new TableCell({
+      borders:bds, width:{size:width,type:WidthType.DXA}, shading:hFill,
+      margins:{top:80,bottom:80,left:130,right:130}, verticalAlign:VerticalAlign.CENTER,
+      children:[new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text,bold:true,size:18,color:'FFFFFF',font:'Arial'})]})]
+    });
+    const banner = (text) => new Table({ width:{size:W,type:WidthType.DXA}, columnWidths:[W], rows:[
+      new TableRow({children:[new TableCell({borders:bds,width:{size:W,type:WidthType.DXA},shading:sFill,margins:{top:100,bottom:100,left:160,right:160},
+        children:[new Paragraph({children:[new TextRun({text,bold:true,size:20,color:'1F3864',font:'Arial'})]})]})]})
+    ]});
+    const L=2200, R=7160;
+    const twoCol = (rows) => new Table({ width:{size:W,type:WidthType.DXA}, columnWidths:[L,R], rows });
+
+    // Title
+    const titleTbl = new Table({ width:{size:W,type:WidthType.DXA}, columnWidths:[W], rows:[
+      new TableRow({children:[new TableCell({borders:bds,shading:hFill,margins:{top:160,bottom:160,left:200,right:200},
+        children:[new Paragraph({alignment:AlignmentType.CENTER,children:[
+          new TextRun({text:'LESSON PLAN',bold:true,size:32,color:'FFFFFF',font:'Arial'})]})]})]})]});
+
+    const infoTbl = twoCol([
+      new TableRow({children:[lblCell('Lesson Title',L), mkCell([pp(d.lessonTitle||'',true)],lFill,R)]}),
+      new TableRow({children:[lblCell('Learning Area',L), mkCell(d.learningArea||'',lFill,R)]}),
+      new TableRow({children:[lblCell('Teacher',L), mkCell(d.teacherName||'',lFill,R)]}),
+      new TableRow({children:[lblCell('Grade & Term',L), mkCell(`${d.gradeLevel||''} · ${d.quarter||''}`,lFill,R)]}),
+      new TableRow({children:[lblCell('Session / Duration',L), mkCell(`${d.session||''} · ${d.duration||''}`,lFill,R)]}),
+      new TableRow({children:[lblCell('References',L), mkCell([...(d.references||[]).map(r=>bl(r))],lFill,R)]}),
+      new TableRow({children:[lblCell('AI Declaration',L), mkCell([pp(d.aiDeclaration||'')],wFill,R)]}),
+    ]);
+
+    const PW=1700, CW=7660;
+    const pre = d.prelesson||{};
+    const preRow = new TableRow({children:[
+      lblCell(`Pre-Lesson\n(${pre.duration||'10 min'})`,PW),
+      mkCell([pp(pre.title||'',true),pp(pre.description||''),sp(),...(pre.steps||[]).map(s=>bl(s))],lFill,CW)
+    ]});
+
+    const flowRows = (d.flow||[]).map(phase => {
+      const items = [pp(`${phase.phase||''} — ${phase.title||''}`,true),sp()];
+      (phase.activities||[]).forEach(a=>items.push(bl(a)));
+      if(phase.workedExamples?.length){
+        items.push(sp(),pp('Worked Examples:',true,false,18,'1F3864'));
+        phase.workedExamples.forEach(ex=>{
+          items.push(pp(ex.title||'',true,false,18,'2E5FA3'));
+          items.push(pp(ex.problem||'',false,true));
+          (ex.solution||[]).forEach(s=>items.push(bl(s)));
+          if(ex.answer) items.push(pp(`Answer: ${ex.answer}`,false,true,18,'1D9E75'));
+        });
+      }
+      if(phase.problems?.length){
+        items.push(sp(),pp('Practice Problems:',true,false,18,'1F3864'));
+        phase.problems.forEach(pr=>{
+          items.push(pp(`${pr.label||''}: ${pr.problem||''}`,true,false,18,'2E5FA3'));
+          if(pr.answer) items.push(pp(`Answer: ${pr.answer}`,false,true,18,'1D9E75'));
+        });
+      }
+      return new TableRow({children:[lblCell(`${phase.phase}\n(${phase.duration||''})`,PW), mkCell(items,wFill,CW)]});
+    });
+
+    const wu = d.wrapup||{};
+    const wuRow = new TableRow({children:[
+      lblCell(`Wrap-up\n(${wu.duration||'10 min'})`,PW),
+      mkCell([pp('Consolidation',true),pp(wu.consolidation||''),sp(),
+        pp('Exit Ticket:',true),pp(wu.exitTicket?.question||'',false,true),
+        pp(`Answer: ${wu.exitTicket?.answer||''}`,false,false,18,'1D9E75')],lFill,CW)
+    ]});
+
+    const leTbl = new Table({width:{size:W,type:WidthType.DXA},columnWidths:[PW,CW],rows:[preRow,...flowRows,wuRow]});
+
+    // Answer Key
+    const akRows = d.answerKey||[];
+    const akTable = new Table({
+      width:{size:W,type:WidthType.DXA}, columnWidths:[2200,2200,4960],
+      rows:[
+        new TableRow({children:[hdrCell('Activity',2200),hdrCell('Item',2200),hdrCell('Solution',4960)]}),
+        ...akRows.map((item,i)=>new TableRow({children:[
+          mkCell(item.activity||'',i%2===0?lFill:wFill,2200),
+          mkCell(item.item||'',i%2===0?lFill:wFill,2200),
+          mkCell(item.solution||'',i%2===0?lFill:wFill,4960),
+        ]}))
+      ]
+    });
+
+    const doc = new Document({
+      numbering:{config:[{reference:'bullets',levels:[{level:0,format:'bullet',text:'•',alignment:AlignmentType.LEFT,style:{paragraph:{indent:{left:360,hanging:360}}}}]}]},
+      sections:[{properties:{page:{margin:{top:720,bottom:720,left:900,right:900}}},
+        children:[
+          titleTbl, sp(), infoTbl, sp(),
+          banner('INTENTIONS  |  Learning Competency & Objectives'),
+          twoCol([
+            new TableRow({children:[lblCell('Competency',L), mkCell([pp(d.learningCompetency||'',false,true),sp(),pp('Content Standard:',true),pp(d.contentStandard||''),sp(),pp('Performance Standard:',true),pp(d.performanceStandard||'')],lFill,R)]}),
+            new TableRow({children:[lblCell('Objectives',L), mkCell([...(d.objectives||[]).map(o=>bl(o))],wFill,R)]}),
+            new TableRow({children:[lblCell('Learner Context',L), mkCell(d.learnerContext||'',lFill,R)]}),
+          ]), sp(),
+          banner('LEARNING EXPERIENCE'),
+          leTbl, sp(),
+          banner('ASSESSMENT & RESOURCES'),
+          twoCol([
+            new TableRow({children:[lblCell('Formative Assessment',L), mkCell([...(d.formativeAssessment||[]).map(a=>bl(a))],wFill,R)]}),
+            new TableRow({children:[lblCell('Extended Learning',L), mkCell([...(d.extendedLearning||[]).map(a=>bl(a))],lFill,R)]}),
+            new TableRow({children:[lblCell('Resources',L), mkCell([...(d.resources||[]).map(r=>bl(r))],wFill,R)]}),
+          ]), sp(),
+          banner('TEACHER REFLECTIONS'),
+          new Table({width:{size:W,type:WidthType.DXA},columnWidths:[W],rows:[
+            new TableRow({children:[mkCell([...(d.teacherReflections||[]).map(r=>bl(r))],lFill,W)]}),
+          ]}), sp(),
+          banner('ANSWER KEY'),
+          akTable,
+        ]
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `LessonPro_${(d.lessonTitle||'LessonPlan').replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'_').slice(0,40)}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    dlBtn.disabled = false; dlBtn.textContent = '📄 Download Word (.docx)';
+
+  } catch(err) {
+    dlBtn.disabled = false; dlBtn.textContent = '📄 Download Word (.docx)';
+    alert('Error generating Word doc: ' + err.message);
+    console.error(err);
+  }
+}
+
+/* ════════════════════════════════════════════
+   PPTX GENERATION (from original LessonPlanGeneratorFinal)
+════════════════════════════════════════════ */
+async function generatePPTX() {
+  if(!parsedData){ alert('No lesson plan data.'); return; }
+  const pptxBtn = document.getElementById('pptx-btn');
+  pptxBtn.disabled = true; pptxBtn.textContent = '⏳ Generating…';
+
+  try {
+    if(typeof PptxGenJS === 'undefined') throw new Error('PptxGenJS not loaded. Please reload.');
+
+    const d = parsedData;
+    const pres = new PptxGenJS();
+    pres.layout = 'LAYOUT_WIDE';
+    const W=13.33, H=7.5;
+    const C = {navy:'1B2B4B',blue:'2E5FA3',sky:'D6E4F7',gold:'E8A020',green:'1D9E75',
+               muted:'5A6E8C',dark:'1B2B4B',white:'FFFFFF',offwhite:'F4F7FC',light:'C8D8EE'};
+    const FH = 'DM Serif Display'; const FB = 'DM Sans';
+    const cap = (arr,n) => (arr||[]).slice(0,n);
+
+    const addFooter = (sl, label) => {
+      sl.addShape(pres.ShapeType.rect,{x:0,y:H-0.35,w:W,h:0.35,fill:{color:C.navy},line:{color:C.navy,width:0}});
+      sl.addText(`LessonPro · ${d.teacherName||''} · ${d.gradeLevel||''}`,{x:0.3,y:H-0.33,w:8,h:0.3,fontSize:9,color:'8BA4CC',fontFace:FB});
+      sl.addText(label,{x:W-3,y:H-0.33,w:2.7,h:0.3,fontSize:9,color:'8BA4CC',fontFace:FB,align:'right'});
+    };
+
+    const dividerSlide = (title, sub='') => {
+      const sl = pres.addSlide();
+      sl.background = {color:C.navy};
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
+      sl.addText(title,{x:0.75,y:2.5,w:12,h:1.2,fontSize:42,bold:true,color:C.white,fontFace:FH,align:'center'});
+      if(sub) sl.addText(sub,{x:0.75,y:3.85,w:12,h:0.6,fontSize:18,color:'8BA4CC',fontFace:FB,align:'center'});
+      addFooter(sl,title.slice(0,20));
+    };
+
+    const contentSlide = (title, tag='') => {
+      const sl = pres.addSlide();
+      sl.background = {color:C.offwhite};
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:W,h:0.72,fill:{color:C.navy},line:{color:C.navy,width:0}});
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.18,h:0.72,fill:{color:C.gold},line:{color:C.gold,width:0}});
+      sl.addText(title,{x:0.35,y:0,w:10.5,h:0.72,fontSize:20,bold:true,color:C.white,fontFace:FH,valign:'middle',margin:0});
+      if(tag) sl.addText(tag,{x:11,y:0,w:2.2,h:0.72,fontSize:11,color:'8BA4CC',fontFace:FB,align:'right',valign:'middle'});
+      addFooter(sl,tag||title.slice(0,15));
+      return sl;
+    };
+
+    const bulletItems = (arr,max,size) => cap(arr,max).map((t,i)=>({text:String(t),options:{bullet:{type:'bullet'},fontSize:size||18,color:C.dark,fontFace:FB,breakLine:i<Math.min(arr.length,max)-1,paraSpaceAfter:6}}));
+    const problemCard = (sl,text,label,y) => {
+      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:9.2,h:1.35,fill:{color:'EAF2FB'},line:{color:C.blue,width:2}});
+      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:0.12,h:1.35,fill:{color:C.blue},line:{color:C.blue,width:0}});
+      sl.addText(label||'Problem',{x:0.65,y:y+0.07,w:8.8,h:0.3,fontSize:11,bold:true,color:C.blue,fontFace:FB,margin:0});
+      sl.addText(String(text||''),{x:0.65,y:y+0.38,w:8.8,h:0.88,fontSize:18,color:C.dark,fontFace:FB,margin:0,wrap:true,valign:'top'});
+    };
+    const answerCard = (sl,text,y) => {
+      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:9.2,h:1.1,fill:{color:'D4F5E9'},line:{color:C.green,width:2}});
+      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:0.12,h:1.1,fill:{color:C.green},line:{color:C.green,width:0}});
+      sl.addText('✓ Answer',{x:0.65,y:y+0.08,w:8.8,h:0.28,fontSize:11,bold:true,color:C.green,fontFace:FB,margin:0});
+      sl.addText(String(text||''),{x:0.65,y:y+0.38,w:8.8,h:0.65,fontSize:20,bold:true,color:C.dark,fontFace:FB,margin:0,wrap:true,valign:'top'});
+    };
+
+    // Title slide
+    {const sl=pres.addSlide();sl.background={color:C.navy};
+    sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
+    sl.addShape(pres.ShapeType.rect,{x:0.5,y:H-1.6,w:W-0.5,h:1.6,fill:{color:'0D1B2E'},line:{color:'0D1B2E',width:0}});
+    sl.addText('LESSON PLAN',{x:0.75,y:1.2,w:12,h:0.5,fontSize:14,bold:true,color:C.gold,charSpacing:6,fontFace:FB,align:'center'});
+    sl.addText(d.lessonTitle||'',{x:0.75,y:1.85,w:12,h:2.0,fontSize:38,bold:true,color:C.white,fontFace:FH,align:'center',wrap:true});
+    sl.addText(`${d.learningArea||''} · ${d.gradeLevel||''} · ${d.quarter||''}`,{x:0.75,y:4.05,w:12,h:0.5,fontSize:16,color:'8BA4CC',fontFace:FB,align:'center'});
+    sl.addText(d.teacherName||'',{x:0.75,y:H-1.45,w:12,h:0.45,fontSize:16,bold:true,color:C.gold,fontFace:FH,align:'center'});
+    sl.addText(`${d.session||''} · ${d.duration||''}`,{x:0.75,y:H-1.0,w:12,h:0.35,fontSize:13,color:'8BA4CC',fontFace:FB,align:'center'});}
+
+    // Objectives
+    {const sl=contentSlide('Learning Objectives','Objectives');
+    sl.addText('By the end of this session, learners will:',{x:0.4,y:0.85,w:9.2,h:0.35,fontSize:14,italic:true,color:C.muted,fontFace:FB});
+    sl.addText(bulletItems(cap(d.objectives||[],5),5,20),{x:0.5,y:1.25,w:9.1,h:4.5,valign:'top'});}
+
+    // Competency
+    {const sl=contentSlide('Learning Competency & Standards','Competency');
+    [{label:'Learning Competency',val:d.learningCompetency,color:C.blue},{label:'Content Standard',val:d.contentStandard,color:C.navy},{label:'Performance Standard',val:d.performanceStandard,color:C.green}]
+    .forEach(({label,val,color},i)=>{const y=0.82+i*1.55;
+      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:9.2,h:1.4,fill:{color:'F4F7FC'},line:{color,width:2}});
+      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:0.14,h:1.4,fill:{color},line:{color,width:0}});
+      sl.addText(label,{x:0.65,y:y+0.06,w:8.8,h:0.3,fontSize:12,bold:true,color,fontFace:FB,margin:0});
+      sl.addText(String(val||''),{x:0.65,y:y+0.36,w:8.8,h:0.95,fontSize:16,color:C.dark,fontFace:FB,margin:0,wrap:true,valign:'top'});});}
+
+    // Pre-lesson
+    {const pre=d.prelesson||{};const sl=contentSlide(`Pre-Lesson Hook · ${pre.duration||''}`, 'Pre-Lesson');
+    sl.addShape(pres.ShapeType.rect,{x:0.4,y:0.82,w:9.2,h:0.55,fill:{color:C.gold},line:{color:C.gold,width:0}});
+    sl.addText(pre.title||'Hook Activity',{x:0.55,y:0.82,w:9.0,h:0.55,fontSize:22,bold:true,color:C.dark,fontFace:FH,valign:'middle',margin:0});
+    if(pre.description) sl.addText(String(pre.description),{x:0.4,y:1.48,w:9.2,h:0.65,fontSize:15,italic:true,color:C.muted,fontFace:FB,wrap:true});
+    const steps=cap(pre.steps||[],5);
+    if(steps.length){const items=steps.map((s,i)=>({text:String(s),options:{bullet:{type:'number'},fontSize:19,color:C.dark,fontFace:FB,breakLine:i<steps.length-1,paraSpaceAfter:6}}));
+    sl.addText(items,{x:0.5,y:2.2,w:9.1,h:3.0,valign:'top'});}}
+
+    // Phases
+    (d.flow||[]).forEach(phase=>{
+      const lbl=phase.phase||'Phase';
+      dividerSlide(lbl,`${phase.title||''} · ${phase.duration||''}`);
+      if(phase.activities?.length){const sl=contentSlide(`${lbl} — Activities`,lbl);sl.addText(bulletItems(cap(phase.activities,6),6,20),{x:0.5,y:0.85,w:9.1,h:4.5,valign:'top'});}
+      (phase.workedExamples||[]).forEach((ex,ei)=>{
+        const sl1=contentSlide(`Worked Example ${ei+1} — ${ex.title||''}`,lbl);
+        sl1.addText('WORK THROUGH THIS TOGETHER',{x:0.4,y:0.82,w:9.2,h:0.28,fontSize:11,bold:true,color:C.gold,charSpacing:3,fontFace:FB});
+        problemCard(sl1,ex.problem,`Problem ${ei+1}`,1.15);
+        const steps=cap(ex.solution||[],6);
+        if(steps.length){sl1.addText('Steps:',{x:0.4,y:3.55,w:1.2,h:0.3,fontSize:13,bold:true,color:C.muted,fontFace:FB});
+        sl1.addText(steps.map((s,i)=>({text:String(s),options:{bullet:{type:'number'},fontSize:17,color:C.dark,fontFace:FB,breakLine:i<steps.length-1,paraSpaceAfter:4}})),{x:0.5,y:3.88,w:9.1,h:1.5,valign:'top'});}
+        const sl2=contentSlide(`Worked Example ${ei+1} — Answer Revealed`,lbl);
+        problemCard(sl2,ex.problem,`Problem ${ei+1}`,0.82);
+        const allSteps=ex.solution||[];
+        if(allSteps.length) sl2.addText(allSteps.map((s,i)=>({text:String(s),options:{bullet:{type:'number'},fontSize:17,color:C.dark,fontFace:FB,breakLine:i<allSteps.length-1,paraSpaceAfter:4}})),{x:0.5,y:3.22,w:9.1,h:1.5,valign:'top'});
+        sl2.addShape(pres.ShapeType.rect,{x:0,y:4.85,w:W,h:0.62,fill:{color:C.green},line:{color:C.green,width:0}});
+        sl2.addText(`✓  Answer: ${ex.answer||''}`,{x:0.4,y:4.85,w:9.2,h:0.62,fontSize:22,bold:true,color:C.white,fontFace:FB,valign:'middle',margin:0});
+      });
+      (phase.problems||[]).forEach((pr,pi)=>{
+        const sl1=contentSlide(`${lbl} — Problem ${pi+1}`,lbl);
+        sl1.addText('SOLVE ON YOUR OWN',{x:0.4,y:0.82,w:9.2,h:0.28,fontSize:11,bold:true,color:C.gold,charSpacing:3,fontFace:FB});
+        problemCard(sl1,pr.problem,pr.label||`Problem ${pi+1}`,1.15);
+        sl1.addShape(pres.ShapeType.rect,{x:0.4,y:3.65,w:9.2,h:0.68,fill:{color:C.offwhite},line:{color:C.light,width:1}});
+        sl1.addText('💬  Discuss with your seatmate.',{x:0.55,y:3.65,w:9.0,h:0.68,fontSize:16,italic:true,color:C.muted,fontFace:FB,valign:'middle',margin:0});
+        const sl2=contentSlide(`${lbl} — Problem ${pi+1} ✓ Answer Revealed`,lbl);
+        sl2.background={color:'FEFDF8'};problemCard(sl2,pr.problem,pr.label||`Problem ${pi+1}`,0.82);answerCard(sl2,pr.answer,3.25);
+      });
+    });
+
+    // Wrap-up
+    {const wu=d.wrapup||{};dividerSlide('WRAP-UP',wu.duration||'');
+    const sl=contentSlide('Consolidation & Exit Ticket','Wrap-Up');
+    if(wu.consolidation){sl.addShape(pres.ShapeType.rect,{x:0.4,y:0.82,w:9.2,h:1.05,fill:{color:C.offwhite},line:{color:C.light,width:1}});
+    sl.addShape(pres.ShapeType.rect,{x:0.4,y:0.82,w:0.12,h:1.05,fill:{color:C.blue},line:{color:C.blue,width:0}});
+    sl.addText('Consolidation',{x:0.65,y:0.87,w:8.8,h:0.28,fontSize:12,bold:true,color:C.blue,fontFace:FB,margin:0});
+    sl.addText(String(wu.consolidation),{x:0.65,y:1.15,w:8.8,h:0.65,fontSize:16,color:C.dark,fontFace:FB,margin:0,wrap:true});}
+    problemCard(sl,wu.exitTicket?.question||'','EXIT TICKET',2.05);
+    sl.addShape(pres.ShapeType.rect,{x:0.4,y:4.1,w:9.2,h:0.52,fill:{color:C.offwhite},line:{color:C.light,width:1}});
+    sl.addText('Write your answer on paper and pass before leaving.',{x:0.55,y:4.1,w:9.0,h:0.52,fontSize:14,italic:true,color:C.muted,fontFace:FB,valign:'middle'});
+    const sl2=contentSlide('Exit Ticket ✓ Answer Revealed','Wrap-Up');
+    sl2.background={color:'FEFDF8'};problemCard(sl2,wu.exitTicket?.question||'','EXIT TICKET',0.82);answerCard(sl2,wu.exitTicket?.answer||'',3.2);}
+
+    // Assessment
+    {const sl=contentSlide('Assessment & Extended Learning','Assessment');
+    sl.addText('Formative Assessment',{x:0.4,y:0.82,w:9.2,h:0.35,fontSize:15,bold:true,color:C.blue,fontFace:FB});
+    sl.addText(bulletItems(cap(d.formativeAssessment||[],3),3,18),{x:0.5,y:1.18,w:9.1,h:1.6,valign:'top'});
+    sl.addText('Extended Learning / Homework',{x:0.4,y:3.0,w:9.2,h:0.35,fontSize:15,bold:true,color:C.green,fontFace:FB});
+    sl.addText(bulletItems(cap(d.extendedLearning||[],3),3,18),{x:0.5,y:3.38,w:9.1,h:1.95,valign:'top'});}
+
+    // Answer Key
+    dividerSlide('ANSWER KEY','All Activities');
+    const akRows=d.answerKey||[];const PER_SLIDE=5;
+    for(let start=0;start<Math.max(akRows.length,1);start+=PER_SLIDE){
+      const chunk=akRows.slice(start,start+PER_SLIDE);
+      const sl=contentSlide(`Answer Key (${start+1}–${Math.min(start+PER_SLIDE,akRows.length)} of ${akRows.length})`,'Answer Key');
+      const header=[{text:'Activity',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:13,fontFace:FB}},{text:'Item',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:13,fontFace:FB}},{text:'Solution / Answer',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:13,fontFace:FB}}];
+      sl.addTable([header,...chunk.map((item,i)=>[
+        {text:item.activity||'',options:{fontSize:13,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
+        {text:item.item||'',options:{fontSize:13,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
+        {text:item.solution||'',options:{fontSize:13,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
+      ])],{x:0.3,y:0.85,w:9.4,colW:[1.9,2.3,5.2],border:{pt:1,color:'C8D8EE'},rowH:0.62});}
+
+    // Closing
+    {const sl=pres.addSlide();sl.background={color:C.navy};
+    sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
+    sl.addText('END OF LESSON',{x:0.75,y:1.4,w:12,h:1.1,fontSize:44,bold:true,color:C.white,fontFace:FH,align:'center'});
+    sl.addText(d.lessonTitle||'',{x:0.75,y:2.7,w:12,h:0.9,fontSize:18,color:'8BA4CC',fontFace:FB,align:'center',wrap:true});
+    sl.addText(d.teacherName||'',{x:0.75,y:3.7,w:12,h:0.5,fontSize:15,color:C.gold,fontFace:FB,align:'center'});
+    addFooter(sl,'End');}
+
+    const safeName=(d.lessonTitle||'LessonPlan').replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'_').slice(0,40);
+    await pres.writeFile({fileName:`LessonPro_${safeName}.pptx`});
+    pptxBtn.disabled=false; pptxBtn.textContent='📊 Download PowerPoint (.pptx)';
+
+  } catch(err) {
+    pptxBtn.disabled=false; pptxBtn.textContent='📊 Download PowerPoint (.pptx)';
+    alert('Error generating PowerPoint: ' + err.message);
+    console.error(err);
+  }
+}
+</script>
+</body>
+</html>
