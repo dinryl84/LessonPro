@@ -353,23 +353,14 @@ textarea{resize:vertical;min-height:90px;}
       </div>
 
       <div class="payment-form">
-        <div class="tip">After sending GCash, fill in your details below. The seller will be notified and send you a download code via Messenger or Viber.</div>
-        <div class="field">
-          <label>Your Name</label>
-          <input type="text" id="buyer-name" placeholder="Your full name"/>
-        </div>
-        <div class="field">
-          <label>GCash Reference Number</label>
-          <input type="text" id="buyer-ref" placeholder="e.g. 1234567890"/>
-        </div>
-        <div class="field">
-          <label>Your Messenger / Viber / Contact</label>
-          <input type="text" id="buyer-contact" placeholder="e.g. fb.com/yourname or 09xxxxxxxxx"/>
-        </div>
+        <div class="tip">📱 After sending GCash, click the button below to message the seller directly on Messenger. Tell them your GCash reference number and which product you paid for — they will send you a download code.</div>
+
         <div id="notif-result"></div>
-        <div class="btn-row">
-          <button class="btn btn-accent btn-lg" onclick="submitPayment()" id="pay-btn">📨 I've Paid — Notify Seller</button>
-        </div>
+
+        <button class="btn btn-accent btn-lg" onclick="notifyAndOpenMessenger()" id="pay-btn" style="width:100%;justify-content:center;font-size:1rem;padding:15px;">
+          💬 Message Me on Messenger
+        </button>
+        <div style="font-size:.75rem;color:var(--muted);text-align:center;margin-top:.6rem;">Opens Facebook Messenger — tell me your GCash ref and chosen product</div>
       </div>
     </div>
 
@@ -657,52 +648,54 @@ function buildSlideList(d) {
 }
 
 /* ════════════════════════════════════════════
-   SUBMIT PAYMENT NOTIFICATION
+   MESSENGER BUTTON + TELEGRAM NOTIFY
 ════════════════════════════════════════════ */
-async function submitPayment() {
+async function notifyAndOpenMessenger() {
   if(!selectedProduct) { alert('Please select a product first (Lesson Plan, PowerPoint, or Both).'); return; }
 
-  const name    = document.getElementById('buyer-name').value.trim();
-  const ref     = document.getElementById('buyer-ref').value.trim();
-  const contact = document.getElementById('buyer-contact').value.trim();
-
-  if(!name || !ref) { alert('Please enter your name and GCash reference number.'); return; }
-
-  const prices   = {lesson:'₱10', ppt:'₱15', both:'₱18'};
-  const labels   = {lesson:'Lesson Plan (.docx)', ppt:'PowerPoint (.pptx)', both:'Both Files'};
-  const btn      = document.getElementById('pay-btn');
-  const resultEl = document.getElementById('notif-result');
+  const prices = {lesson:'₱10', ppt:'₱15', both:'₱18'};
+  const labels = {lesson:'Lesson Plan (.docx)', ppt:'PowerPoint (.pptx)', both:'Both Files'};
+  const d      = parsedData;
+  const btn    = document.getElementById('pay-btn');
 
   btn.disabled = true;
-  btn.textContent = '⏳ Sending notification…';
+  btn.textContent = '⏳ Opening Messenger…';
 
-  const d = parsedData;
-  const msg = `💰 <b>LessonPro — New Payment!</b>
+  // Telegram alert
+  const msg = `💬 <b>LessonPro — Buyer opening Messenger!</b>
 
-👤 Buyer: <b>${name}</b>
-📱 Contact: ${contact}
 📦 Product: <b>${labels[selectedProduct]}</b>
 💵 Amount: <b>${prices[selectedProduct]}</b>
-🧾 GCash Ref: <code>${ref}</code>
-
 📚 Lesson: ${d?.lessonTitle || 'Unknown'}
 🎓 Grade: ${d?.gradeLevel || ''}
 📝 Subject: ${d?.learningArea || ''}
 
-⚡ Open Admin panel → Generate code → Send to buyer`;
+⚡ They will message you on Messenger with their GCash ref. Generate code and reply there.`;
 
   await sendTelegram(msg);
 
-  // Save alert locally for admin panel
-  const alert = { name, ref, contact, product: selectedProduct, lesson: d?.lessonTitle||'', time: new Date().toLocaleString('en-PH') };
+  // Save alert locally
+  const alert = {
+    product: selectedProduct,
+    lesson: d?.lessonTitle || '',
+    time: new Date().toLocaleString('en-PH')
+  };
   adminAlerts.unshift(alert);
   localStorage.setItem('lp_alerts', JSON.stringify(adminAlerts));
-
-  resultEl.innerHTML = `<div class="notif-sent">✅ Seller has been notified via Telegram! Please wait for your download code — it will be sent to: <strong>${contact}</strong></div>`;
-  btn.textContent = '✅ Notification Sent';
-  btn.disabled = true;
-
   renderAdminAlerts();
+
+  // Pre-filled Messenger message
+  const preText = encodeURIComponent(`Hi! I just paid ${prices[selectedProduct]} for the ${labels[selectedProduct]} on LessonPro. Here is my GCash reference number: [paste ref here]. Lesson topic: ${d?.lessonTitle || ''}`);
+  const messengerURL = `https://m.me/61590462580577?text=${preText}`;
+
+  document.getElementById('notif-result').innerHTML = `
+    <div class="notif-sent">✅ Seller notified! Messenger is opening — send your GCash ref number in the chat and wait for your download code.</div>`;
+
+  btn.textContent = '💬 Open Messenger Again';
+  btn.disabled = false;
+  btn.onclick = () => window.open(messengerURL, '_blank');
+
+  window.open(messengerURL, '_blank');
 }
 
 /* ════════════════════════════════════════════
@@ -964,17 +957,16 @@ function renderAdminHistory() {
    START OVER
 ════════════════════════════════════════════ */
 function startOver() {
-  parsedData     = null;
+  parsedData      = null;
   selectedProduct = null;
   unlockedProduct = null;
-  document.getElementById('buyer-name').value    = '';
-  document.getElementById('buyer-ref').value     = '';
-  document.getElementById('buyer-contact').value = '';
-  document.getElementById('code-input').value    = '';
+  document.getElementById('code-input').value        = '';
   document.getElementById('code-status').textContent = '';
   document.getElementById('notif-result').innerHTML  = '';
-  document.getElementById('pay-btn').disabled = false;
-  document.getElementById('pay-btn').textContent = '📨 I\'ve Paid — Notify Seller';
+  const btn = document.getElementById('pay-btn');
+  btn.disabled    = false;
+  btn.textContent = '💬 Message Me on Messenger';
+  btn.onclick     = notifyAndOpenMessenger;
   ['pc-lesson','pc-ppt','pc-both'].forEach(id => document.getElementById(id).classList.remove('selected'));
   setStep(1);
   window.scrollTo({top:0,behavior:'smooth'});
