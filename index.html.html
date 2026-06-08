@@ -198,7 +198,6 @@ textarea{resize:vertical;min-height:90px;}
   </div>
   <div class="header-right">
     <span class="header-badge">AI-Powered · DepEd Aligned</span>
-    <button class="admin-trigger" onclick="openAdminLogin()">⚙ Admin</button>
   </div>
 </header>
 
@@ -393,75 +392,7 @@ textarea{resize:vertical;min-height:90px;}
 
 </div><!-- /container -->
 
-<!-- ADMIN OVERLAY -->
-<div class="admin-overlay" id="admin-overlay">
-  <div class="admin-panel">
-    <div class="admin-header">
-      <h2>⚙ LessonPro Admin</h2>
-      <button class="admin-close" onclick="closeAdmin()">✕</button>
-    </div>
 
-    <!-- Login -->
-    <div id="admin-login" class="admin-login">
-      <div class="field">
-        <label>Admin Password</label>
-        <input type="password" id="admin-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter')verifyAdmin()"/>
-      </div>
-      <div id="admin-login-err" style="font-size:.8rem;color:var(--red);margin-bottom:.5rem;"></div>
-      <button class="btn btn-primary" onclick="verifyAdmin()">🔐 Login</button>
-    </div>
-
-    <!-- Panel -->
-    <div id="admin-content" style="display:none">
-      <div class="admin-body">
-
-        <!-- Viewer Alerts -->
-        <div class="admin-section">
-          <h3>🔔 Recent Buyer Alerts</h3>
-          <div class="alert-feed" id="alert-feed">
-            <div style="color:var(--muted);font-size:.8rem;">No alerts yet. Alerts appear here when buyers submit payment.</div>
-          </div>
-        </div>
-
-        <!-- Code Generator -->
-        <div class="admin-section">
-          <h3>🔑 Generate Download Code</h3>
-          <div class="field">
-            <label>Buyer Name</label>
-            <input type="text" id="adm-buyer" placeholder="Buyer's name"/>
-          </div>
-          <div class="field">
-            <label>Product</label>
-            <select id="adm-product">
-              <option value="lesson">Lesson Plan only (₱10)</option>
-              <option value="ppt">PowerPoint only (₱15)</option>
-              <option value="both">Both files (₱18)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>GCash Ref / Notes</label>
-            <input type="text" id="adm-notes" placeholder="GCash ref number"/>
-          </div>
-          <button class="btn btn-primary" id="adm-gen-btn" onclick="adminGenerateCode()">⚡ Generate & Save Code</button>
-          <div id="adm-status" class="status-msg" style="display:none"></div>
-
-          <div class="code-display" id="adm-code-display" style="display:none">
-            <div class="code-lbl">DOWNLOAD CODE — SEND TO BUYER</div>
-            <div class="code-val" id="adm-code-val">LESS-XXXX-XXXX-XXXX</div>
-          </div>
-          <button class="btn btn-outline" id="adm-copy-btn" onclick="adminCopyCode()" style="display:none;margin-top:.5rem;width:100%">📋 Copy Code</button>
-        </div>
-
-        <!-- Issued Codes History -->
-        <div class="admin-section">
-          <h3>📋 Issued Codes History</h3>
-          <div id="adm-history"></div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 /* ════════════════════════════════════════════
@@ -485,9 +416,6 @@ const SAFE_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 let parsedData     = null;
 let selectedProduct = null;
 let unlockedProduct = null;
-let adminLoggedIn  = false;
-let currentAdminCode = null;
-let adminAlerts    = JSON.parse(localStorage.getItem('lp_alerts') || '[]');
 
 /* ════════════════════════════════════════════
    STEP HELPERS
@@ -674,15 +602,24 @@ async function notifyAndOpenMessenger() {
 
   await sendTelegram(msg);
 
-  // Save alert locally
-  const alert = {
-    product: selectedProduct,
-    lesson: d?.lessonTitle || '',
-    time: new Date().toLocaleString('en-PH')
-  };
-  adminAlerts.unshift(alert);
-  localStorage.setItem('lp_alerts', JSON.stringify(adminAlerts));
-  renderAdminAlerts();
+  // Save alert to Supabase viewer_alerts
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/viewer_alerts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify({
+        product: selectedProduct,
+        lesson: d?.lessonTitle || '',
+        grade: d?.gradeLevel || '',
+        subject: d?.learningArea || ''
+      })
+    });
+  } catch(e) { console.warn('Alert save failed:', e); }
 
   // Pre-filled Messenger message
   const preText = encodeURIComponent(`Hi! I just paid ${prices[selectedProduct]} for the ${labels[selectedProduct]} on LessonPro. Here is my GCash reference number: [paste ref here]. Lesson topic: ${d?.lessonTitle || ''}`);
@@ -806,151 +743,6 @@ function unlockDownload() {
   document.getElementById('pptx-btn').style.display = showPptx ? 'inline-flex' : 'none';
 
   document.getElementById('card4').scrollIntoView({behavior:'smooth'});
-}
-
-/* ════════════════════════════════════════════
-   ADMIN PANEL
-════════════════════════════════════════════ */
-function openAdminLogin() {
-  document.getElementById('admin-overlay').classList.add('open');
-  if(!adminLoggedIn) {
-    document.getElementById('admin-login').style.display = 'block';
-    document.getElementById('admin-content').style.display = 'none';
-  }
-}
-
-function closeAdmin() {
-  document.getElementById('admin-overlay').classList.remove('open');
-}
-
-function verifyAdmin() {
-  const pass = document.getElementById('admin-pass').value;
-  if(pass === ADMIN_PASSWORD) {
-    adminLoggedIn = true;
-    document.getElementById('admin-login').style.display = 'none';
-    document.getElementById('admin-content').style.display = 'block';
-    renderAdminAlerts();
-    renderAdminHistory();
-  } else {
-    document.getElementById('admin-login-err').textContent = '❌ Wrong password.';
-  }
-}
-
-function renderAdminAlerts() {
-  const el = document.getElementById('alert-feed');
-  if(!adminAlerts.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;">No alerts yet.</div>';
-    return;
-  }
-  el.innerHTML = adminAlerts.slice(0,10).map(a => `
-    <div class="alert-item">
-      <div class="alert-time">${a.time}</div>
-      <strong>${a.name}</strong> — ${a.product === 'both' ? 'Both Files' : a.product === 'lesson' ? 'Lesson Plan' : 'PowerPoint'}
-      · GCash ref: <code>${a.ref}</code>
-      <br>📱 ${a.contact} · 📚 ${a.lesson}
-    </div>`).join('');
-}
-
-/* ════════════════════════════════════════════
-   ADMIN CODE GENERATOR
-════════════════════════════════════════════ */
-async function adminGenerateCode() {
-  const buyer   = document.getElementById('adm-buyer').value.trim();
-  const product = document.getElementById('adm-product').value;
-  const notes   = document.getElementById('adm-notes').value.trim();
-  const btn     = document.getElementById('adm-gen-btn');
-  const statusEl = document.getElementById('adm-status');
-
-  if(!buyer) { alert('Please enter the buyer name.'); return; }
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Saving…';
-  statusEl.style.display = 'block';
-  statusEl.className = 'status-msg status-loading';
-  statusEl.textContent = 'Generating and saving code to Supabase…';
-
-  const seg1     = randomSegment();
-  const seg2     = randomSegment();
-  const checksum = computeChecksum(seg1, seg2);
-  const code     = `LESS-${seg1}-${seg2}-${checksum}`;
-
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/lesson_codes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        Prefer: 'return=minimal'
-      },
-      body: JSON.stringify({
-        code,
-        buyer_name: buyer,
-        product_type: product,
-        notes,
-        is_used: false
-      })
-    });
-
-    if(!res.ok) throw new Error(await res.text());
-
-    statusEl.className = 'status-msg status-success';
-    statusEl.textContent = '✅ Code saved to Supabase! Ready to send.';
-    currentAdminCode = code;
-
-    document.getElementById('adm-code-val').textContent = code;
-    document.getElementById('adm-code-display').style.display = 'block';
-    document.getElementById('adm-copy-btn').style.display = 'block';
-
-    // Save to local history
-    const history = getAdminHistory();
-    history.unshift({ code, buyer, product, notes, date: new Date().toLocaleString('en-PH'), synced: true });
-    localStorage.setItem('lp_codes', JSON.stringify(history));
-    renderAdminHistory();
-
-  } catch(e) {
-    statusEl.className = 'status-msg status-error';
-    statusEl.textContent = '⚠️ Supabase save failed: ' + e.message;
-    currentAdminCode = code;
-    document.getElementById('adm-code-val').textContent = code;
-    document.getElementById('adm-code-display').style.display = 'block';
-    document.getElementById('adm-copy-btn').style.display = 'block';
-  }
-
-  document.getElementById('adm-buyer').value = '';
-  document.getElementById('adm-notes').value = '';
-  btn.disabled = false;
-  btn.textContent = '⚡ Generate & Save Code';
-}
-
-function adminCopyCode() {
-  if(!currentAdminCode) return;
-  navigator.clipboard.writeText(currentAdminCode).then(() => {
-    const btn = document.getElementById('adm-copy-btn');
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = '📋 Copy Code', 2000);
-  });
-}
-
-function getAdminHistory() {
-  try { return JSON.parse(localStorage.getItem('lp_codes') || '[]'); } catch { return []; }
-}
-
-function renderAdminHistory() {
-  const history = getAdminHistory();
-  const el = document.getElementById('adm-history');
-  if(!history.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:.8rem;">No codes issued yet.</div>';
-    return;
-  }
-  const labels = {lesson:'Lesson Plan', ppt:'PowerPoint', both:'Both Files'};
-  const typeClass = {lesson:'type-lesson', ppt:'type-ppt', both:'type-both'};
-  el.innerHTML = history.slice(0,15).map(item => `
-    <div class="history-item">
-      <div class="h-code">${item.code}</div>
-      <span class="h-type ${typeClass[item.product]||'type-lesson'}">${labels[item.product]||item.product}</span>
-      <div class="h-meta">${item.buyer} · ${item.date}${item.notes ? ' · '+item.notes : ''}</div>
-    </div>`).join('');
 }
 
 /* ════════════════════════════════════════════
