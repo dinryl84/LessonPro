@@ -930,7 +930,7 @@ async function generateDOCX() {
 }
 
 /* ════════════════════════════════════════════
-   PPTX GENERATION (from original LessonPlanGeneratorFinal)
+   PPTX GENERATION — FIXED LAYOUT
 ════════════════════════════════════════════ */
 async function generatePPTX() {
   if(!parsedData){ alert('No lesson plan data.'); return; }
@@ -940,169 +940,380 @@ async function generatePPTX() {
   try {
     if(typeof PptxGenJS === 'undefined') throw new Error('PptxGenJS not loaded. Please reload.');
 
-    const d = parsedData;
+    const d    = parsedData;
     const pres = new PptxGenJS();
     pres.layout = 'LAYOUT_WIDE';
-    const W=13.33, H=7.5;
-    const C = {navy:'1B2B4B',blue:'2E5FA3',sky:'D6E4F7',gold:'E8A020',green:'1D9E75',
-               muted:'5A6E8C',dark:'1B2B4B',white:'FFFFFF',offwhite:'F4F7FC',light:'C8D8EE'};
-    const FH = 'DM Serif Display'; const FB = 'DM Sans';
-    const cap = (arr,n) => (arr||[]).slice(0,n);
 
-    const addFooter = (sl, label) => {
-      sl.addShape(pres.ShapeType.rect,{x:0,y:H-0.35,w:W,h:0.35,fill:{color:C.navy},line:{color:C.navy,width:0}});
-      sl.addText(`LessonPro · ${d.teacherName||''} · ${d.gradeLevel||''}`,{x:0.3,y:H-0.33,w:8,h:0.3,fontSize:9,color:'8BA4CC',fontFace:FB});
-      sl.addText(label,{x:W-3,y:H-0.33,w:2.7,h:0.3,fontSize:9,color:'8BA4CC',fontFace:FB,align:'right'});
+    // ── Slide dimensions ──────────────────────────────────────────────────────
+    const W = 13.33, H = 7.5;
+    const MARGIN = 0.4;           // left/right margin
+    const CONTENT_W = W - MARGIN * 2;  // 12.53 — full usable width
+    const CONTENT_X = MARGIN;
+    const HEADER_H  = 0.75;       // top header bar height
+    const FOOTER_H  = 0.35;
+    const FOOTER_Y  = H - FOOTER_H;
+    const BODY_TOP  = HEADER_H + 0.15;  // y where body content starts
+    const BODY_H    = FOOTER_Y - BODY_TOP - 0.1; // usable body height
+
+    // ── Colors ────────────────────────────────────────────────────────────────
+    const C = {
+      navy:'1B2B4B', blue:'2E5FA3', sky:'D6E4F7', gold:'E8A020',
+      green:'1D9E75', red:'C0392B', muted:'5A6E8C', dark:'1B2B4B',
+      white:'FFFFFF', offwhite:'F4F7FC', light:'C8D8EE',
+      lightblue:'EAF2FB', lightgreen:'D4F5E9'
     };
 
+    // ── Fonts ─────────────────────────────────────────────────────────────────
+    const FH = 'DM Serif Display';
+    const FB = 'DM Sans';
+
+    // ── Font sizes — minimum 24pt for all body text ───────────────────────────
+    const FS = {
+      body:    24,   // standard body text
+      bullet:  24,   // bullet/numbered list items
+      label:   14,   // small labels inside cards
+      header:  22,   // slide header title
+      tag:     12,   // top-right tag
+      footer:   9,   // footer text
+      divider: 44,   // divider slide title
+      subtext: 18,   // subtitles, captions
+    };
+
+    const cap = (arr, n) => (arr||[]).slice(0, n);
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    const addFooter = (sl, label) => {
+      sl.addShape(pres.ShapeType.rect,{x:0,y:FOOTER_Y,w:W,h:FOOTER_H,fill:{color:C.navy},line:{color:C.navy,width:0}});
+      sl.addText(`LessonPro · ${d.teacherName||''} · ${d.gradeLevel||''}`,
+        {x:0.3,y:FOOTER_Y+0.04,w:8,h:FOOTER_H-0.08,fontSize:FS.footer,color:'8BA4CC',fontFace:FB,valign:'middle'});
+      sl.addText(label,
+        {x:W-3.2,y:FOOTER_Y+0.04,w:2.9,h:FOOTER_H-0.08,fontSize:FS.footer,color:'8BA4CC',fontFace:FB,align:'right',valign:'middle'});
+    };
+
+    // ── Divider slide (dark, full-bleed) ──────────────────────────────────────
     const dividerSlide = (title, sub='') => {
       const sl = pres.addSlide();
       sl.background = {color:C.navy};
       sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
-      sl.addText(title,{x:0.75,y:2.5,w:12,h:1.2,fontSize:42,bold:true,color:C.white,fontFace:FH,align:'center'});
-      if(sub) sl.addText(sub,{x:0.75,y:3.85,w:12,h:0.6,fontSize:18,color:'8BA4CC',fontFace:FB,align:'center'});
-      addFooter(sl,title.slice(0,20));
+      sl.addText(title,{x:0.75,y:2.2,w:W-1,h:1.4,fontSize:FS.divider,bold:true,color:C.white,fontFace:FH,align:'center',valign:'middle'});
+      if(sub) sl.addText(sub,{x:0.75,y:3.75,w:W-1,h:0.65,fontSize:20,color:'8BA4CC',fontFace:FB,align:'center'});
+      addFooter(sl, title.slice(0,20));
     };
 
+    // ── Content slide (light bg, dark header bar) ─────────────────────────────
     const contentSlide = (title, tag='') => {
       const sl = pres.addSlide();
       sl.background = {color:C.offwhite};
-      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:W,h:0.72,fill:{color:C.navy},line:{color:C.navy,width:0}});
-      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.18,h:0.72,fill:{color:C.gold},line:{color:C.gold,width:0}});
-      sl.addText(title,{x:0.35,y:0,w:10.5,h:0.72,fontSize:20,bold:true,color:C.white,fontFace:FH,valign:'middle',margin:0});
-      if(tag) sl.addText(tag,{x:11,y:0,w:2.2,h:0.72,fontSize:11,color:'8BA4CC',fontFace:FB,align:'right',valign:'middle'});
-      addFooter(sl,tag||title.slice(0,15));
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:W,h:HEADER_H,fill:{color:C.navy},line:{color:C.navy,width:0}});
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.2,h:HEADER_H,fill:{color:C.gold},line:{color:C.gold,width:0}});
+      sl.addText(title,{x:0.35,y:0,w:W-3.5,h:HEADER_H,fontSize:FS.header,bold:true,color:C.white,fontFace:FH,valign:'middle'});
+      if(tag) sl.addText(tag,{x:W-3.0,y:0,w:2.7,h:HEADER_H,fontSize:FS.tag,color:'8BA4CC',fontFace:FB,align:'right',valign:'middle'});
+      addFooter(sl, tag||title.slice(0,18));
       return sl;
     };
 
-    const bulletItems = (arr,max,size) => cap(arr,max).map((t,i)=>({text:String(t),options:{bullet:{type:'bullet'},fontSize:size||18,color:C.dark,fontFace:FB,breakLine:i<Math.min(arr.length,max)-1,paraSpaceAfter:6}}));
-    const problemCard = (sl,text,label,y) => {
-      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:9.2,h:1.35,fill:{color:'EAF2FB'},line:{color:C.blue,width:2}});
-      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:0.12,h:1.35,fill:{color:C.blue},line:{color:C.blue,width:0}});
-      sl.addText(label||'Problem',{x:0.65,y:y+0.07,w:8.8,h:0.3,fontSize:11,bold:true,color:C.blue,fontFace:FB,margin:0});
-      sl.addText(String(text||''),{x:0.65,y:y+0.38,w:8.8,h:0.88,fontSize:18,color:C.dark,fontFace:FB,margin:0,wrap:true,valign:'top'});
+    // ── Bullet list items ─────────────────────────────────────────────────────
+    const bulletItems = (arr, max) => cap(arr, max).map((t, i) => ({
+      text: String(t),
+      options: {
+        bullet: {type:'bullet'},
+        fontSize: FS.bullet,
+        color: C.dark,
+        fontFace: FB,
+        breakLine: i < Math.min(arr.length, max) - 1,
+        paraSpaceAfter: 12,
+        indentLevel: 0,
+      }
+    }));
+
+    const numberedItems = (arr, max) => cap(arr, max).map((t, i) => ({
+      text: String(t),
+      options: {
+        bullet: {type:'number'},
+        fontSize: FS.bullet,
+        color: C.dark,
+        fontFace: FB,
+        breakLine: i < Math.min(arr.length, max) - 1,
+        paraSpaceAfter: 12,
+      }
+    }));
+
+    // ── Problem card — blue bordered box ─────────────────────────────────────
+    const problemCard = (sl, text, label, y) => {
+      const CARD_H = 2.2;
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y,w:CONTENT_W,h:CARD_H,fill:{color:C.lightblue},line:{color:C.blue,width:2}});
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y,w:0.14,h:CARD_H,fill:{color:C.blue},line:{color:C.blue,width:0}});
+      sl.addText(label||'Problem',
+        {x:CONTENT_X+0.25,y:y+0.1,w:CONTENT_W-0.3,h:0.35,fontSize:FS.label,bold:true,color:C.blue,fontFace:FB});
+      sl.addText(String(text||''),
+        {x:CONTENT_X+0.25,y:y+0.48,w:CONTENT_W-0.35,h:CARD_H-0.58,fontSize:FS.body,color:C.dark,fontFace:FB,wrap:true,valign:'top'});
     };
-    const answerCard = (sl,text,y) => {
-      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:9.2,h:1.1,fill:{color:'D4F5E9'},line:{color:C.green,width:2}});
-      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:0.12,h:1.1,fill:{color:C.green},line:{color:C.green,width:0}});
-      sl.addText('✓ Answer',{x:0.65,y:y+0.08,w:8.8,h:0.28,fontSize:11,bold:true,color:C.green,fontFace:FB,margin:0});
-      sl.addText(String(text||''),{x:0.65,y:y+0.38,w:8.8,h:0.65,fontSize:20,bold:true,color:C.dark,fontFace:FB,margin:0,wrap:true,valign:'top'});
+
+    // ── Answer bar — full-width green bar ─────────────────────────────────────
+    const answerBar = (sl, text) => {
+      const BAR_Y = FOOTER_Y - 0.9;
+      sl.addShape(pres.ShapeType.rect,{x:0,y:BAR_Y,w:W,h:0.9,fill:{color:C.green},line:{color:C.green,width:0}});
+      sl.addText(`✓  Answer: ${text||''}`,
+        {x:0.4,y:BAR_Y,w:W-0.5,h:0.9,fontSize:26,bold:true,color:C.white,fontFace:FB,valign:'middle'});
     };
 
-    // Title slide
-    {const sl=pres.addSlide();sl.background={color:C.navy};
-    sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
-    sl.addShape(pres.ShapeType.rect,{x:0.5,y:H-1.6,w:W-0.5,h:1.6,fill:{color:'0D1B2E'},line:{color:'0D1B2E',width:0}});
-    sl.addText('LESSON PLAN',{x:0.75,y:1.2,w:12,h:0.5,fontSize:14,bold:true,color:C.gold,charSpacing:6,fontFace:FB,align:'center'});
-    sl.addText(d.lessonTitle||'',{x:0.75,y:1.85,w:12,h:2.0,fontSize:38,bold:true,color:C.white,fontFace:FH,align:'center',wrap:true});
-    sl.addText(`${d.learningArea||''} · ${d.gradeLevel||''} · ${d.quarter||''}`,{x:0.75,y:4.05,w:12,h:0.5,fontSize:16,color:'8BA4CC',fontFace:FB,align:'center'});
-    sl.addText(d.teacherName||'',{x:0.75,y:H-1.45,w:12,h:0.45,fontSize:16,bold:true,color:C.gold,fontFace:FH,align:'center'});
-    sl.addText(`${d.session||''} · ${d.duration||''}`,{x:0.75,y:H-1.0,w:12,h:0.35,fontSize:13,color:'8BA4CC',fontFace:FB,align:'center'});}
+    // ── Answer card — green bordered box ─────────────────────────────────────
+    const answerCard = (sl, text, y) => {
+      const CARD_H = 1.4;
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y,w:CONTENT_W,h:CARD_H,fill:{color:C.lightgreen},line:{color:C.green,width:2}});
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y,w:0.14,h:CARD_H,fill:{color:C.green},line:{color:C.green,width:0}});
+      sl.addText('✓ Answer',
+        {x:CONTENT_X+0.25,y:y+0.1,w:CONTENT_W-0.3,h:0.35,fontSize:FS.label,bold:true,color:C.green,fontFace:FB});
+      sl.addText(String(text||''),
+        {x:CONTENT_X+0.25,y:y+0.5,w:CONTENT_W-0.35,h:CARD_H-0.6,fontSize:26,bold:true,color:C.dark,fontFace:FB,wrap:true,valign:'top'});
+    };
 
-    // Objectives
-    {const sl=contentSlide('Learning Objectives','Objectives');
-    sl.addText('By the end of this session, learners will:',{x:0.4,y:0.85,w:9.2,h:0.35,fontSize:14,italic:true,color:C.muted,fontFace:FB});
-    sl.addText(bulletItems(cap(d.objectives||[],5),5,20),{x:0.5,y:1.25,w:9.1,h:4.5,valign:'top'});}
+    // ════════════════════════════════════════
+    // SLIDE 1 — Title
+    // ════════════════════════════════════════
+    {
+      const sl = pres.addSlide();
+      sl.background = {color:C.navy};
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
+      sl.addShape(pres.ShapeType.rect,{x:0.5,y:H-1.8,w:W-0.5,h:1.8,fill:{color:'0D1B2E'},line:{color:'0D1B2E',width:0}});
+      sl.addText('LESSON PLAN',{x:0.75,y:1.0,w:W-1,h:0.5,fontSize:15,bold:true,color:C.gold,charSpacing:6,fontFace:FB,align:'center'});
+      sl.addText(d.lessonTitle||'',{x:0.75,y:1.6,w:W-1,h:2.2,fontSize:36,bold:true,color:C.white,fontFace:FH,align:'center',wrap:true});
+      sl.addText(`${d.learningArea||''} · ${d.gradeLevel||''} · ${d.quarter||''}`,
+        {x:0.75,y:3.95,w:W-1,h:0.5,fontSize:18,color:'8BA4CC',fontFace:FB,align:'center'});
+      sl.addText(d.teacherName||'',{x:0.75,y:H-1.6,w:W-1,h:0.5,fontSize:18,bold:true,color:C.gold,fontFace:FH,align:'center'});
+      sl.addText(`${d.session||''} · ${d.duration||''}`,
+        {x:0.75,y:H-1.1,w:W-1,h:0.4,fontSize:15,color:'8BA4CC',fontFace:FB,align:'center'});
+    }
 
-    // Competency
-    {const sl=contentSlide('Learning Competency & Standards','Competency');
-    [{label:'Learning Competency',val:d.learningCompetency,color:C.blue},{label:'Content Standard',val:d.contentStandard,color:C.navy},{label:'Performance Standard',val:d.performanceStandard,color:C.green}]
-    .forEach(({label,val,color},i)=>{const y=0.82+i*1.55;
-      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:9.2,h:1.4,fill:{color:'F4F7FC'},line:{color,width:2}});
-      sl.addShape(pres.ShapeType.rect,{x:0.4,y,w:0.14,h:1.4,fill:{color},line:{color,width:0}});
-      sl.addText(label,{x:0.65,y:y+0.06,w:8.8,h:0.3,fontSize:12,bold:true,color,fontFace:FB,margin:0});
-      sl.addText(String(val||''),{x:0.65,y:y+0.36,w:8.8,h:0.95,fontSize:16,color:C.dark,fontFace:FB,margin:0,wrap:true,valign:'top'});});}
+    // ════════════════════════════════════════
+    // SLIDE 2 — Objectives
+    // ════════════════════════════════════════
+    {
+      const sl = contentSlide('Learning Objectives','Objectives');
+      sl.addText('By the end of this session, learners will be able to:',
+        {x:CONTENT_X,y:BODY_TOP,w:CONTENT_W,h:0.4,fontSize:FS.subtext,italic:true,color:C.muted,fontFace:FB});
+      sl.addText(bulletItems(cap(d.objectives||[],5),5),
+        {x:CONTENT_X+0.1,y:BODY_TOP+0.45,w:CONTENT_W-0.1,h:BODY_H-0.5,valign:'top'});
+    }
 
-    // Pre-lesson
-    {const pre=d.prelesson||{};const sl=contentSlide(`Pre-Lesson Hook · ${pre.duration||''}`, 'Pre-Lesson');
-    sl.addShape(pres.ShapeType.rect,{x:0.4,y:0.82,w:9.2,h:0.55,fill:{color:C.gold},line:{color:C.gold,width:0}});
-    sl.addText(pre.title||'Hook Activity',{x:0.55,y:0.82,w:9.0,h:0.55,fontSize:22,bold:true,color:C.dark,fontFace:FH,valign:'middle',margin:0});
-    if(pre.description) sl.addText(String(pre.description),{x:0.4,y:1.48,w:9.2,h:0.65,fontSize:15,italic:true,color:C.muted,fontFace:FB,wrap:true});
-    const steps=cap(pre.steps||[],5);
-    if(steps.length){const items=steps.map((s,i)=>({text:String(s),options:{bullet:{type:'number'},fontSize:19,color:C.dark,fontFace:FB,breakLine:i<steps.length-1,paraSpaceAfter:6}}));
-    sl.addText(items,{x:0.5,y:2.2,w:9.1,h:3.0,valign:'top'});}}
-
-    // Phases
-    (d.flow||[]).forEach(phase=>{
-      const lbl=phase.phase||'Phase';
-      dividerSlide(lbl,`${phase.title||''} · ${phase.duration||''}`);
-      if(phase.activities?.length){const sl=contentSlide(`${lbl} — Activities`,lbl);sl.addText(bulletItems(cap(phase.activities,6),6,20),{x:0.5,y:0.85,w:9.1,h:4.5,valign:'top'});}
-      (phase.workedExamples||[]).forEach((ex,ei)=>{
-        const sl1=contentSlide(`Worked Example ${ei+1} — ${ex.title||''}`,lbl);
-        sl1.addText('WORK THROUGH THIS TOGETHER',{x:0.4,y:0.82,w:9.2,h:0.28,fontSize:11,bold:true,color:C.gold,charSpacing:3,fontFace:FB});
-        problemCard(sl1,ex.problem,`Problem ${ei+1}`,1.15);
-        const steps=cap(ex.solution||[],6);
-        if(steps.length){sl1.addText('Steps:',{x:0.4,y:3.55,w:1.2,h:0.3,fontSize:13,bold:true,color:C.muted,fontFace:FB});
-        sl1.addText(steps.map((s,i)=>({text:String(s),options:{bullet:{type:'number'},fontSize:17,color:C.dark,fontFace:FB,breakLine:i<steps.length-1,paraSpaceAfter:4}})),{x:0.5,y:3.88,w:9.1,h:1.5,valign:'top'});}
-        const sl2=contentSlide(`Worked Example ${ei+1} — Answer Revealed`,lbl);
-        problemCard(sl2,ex.problem,`Problem ${ei+1}`,0.82);
-        const allSteps=ex.solution||[];
-        if(allSteps.length) sl2.addText(allSteps.map((s,i)=>({text:String(s),options:{bullet:{type:'number'},fontSize:17,color:C.dark,fontFace:FB,breakLine:i<allSteps.length-1,paraSpaceAfter:4}})),{x:0.5,y:3.22,w:9.1,h:1.5,valign:'top'});
-        sl2.addShape(pres.ShapeType.rect,{x:0,y:4.85,w:W,h:0.62,fill:{color:C.green},line:{color:C.green,width:0}});
-        sl2.addText(`✓  Answer: ${ex.answer||''}`,{x:0.4,y:4.85,w:9.2,h:0.62,fontSize:22,bold:true,color:C.white,fontFace:FB,valign:'middle',margin:0});
+    // ════════════════════════════════════════
+    // SLIDE 3 — Competency & Standards
+    // ════════════════════════════════════════
+    {
+      const sl = contentSlide('Learning Competency & Standards','Competency');
+      const items = [
+        {label:'Learning Competency', val:d.learningCompetency, color:C.blue},
+        {label:'Content Standard',    val:d.contentStandard,    color:C.navy},
+        {label:'Performance Standard',val:d.performanceStandard,color:C.green},
+      ];
+      const boxH = (BODY_H - 0.1) / 3;
+      items.forEach(({label, val, color}, i) => {
+        const y = BODY_TOP + i * (boxH + 0.05);
+        sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y,w:CONTENT_W,h:boxH,fill:{color:'F4F7FC'},line:{color,width:2}});
+        sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y,w:0.14,h:boxH,fill:{color},line:{color,width:0}});
+        sl.addText(label,{x:CONTENT_X+0.25,y:y+0.08,w:CONTENT_W-0.3,h:0.32,fontSize:FS.label,bold:true,color,fontFace:FB});
+        sl.addText(String(val||''),{x:CONTENT_X+0.25,y:y+0.42,w:CONTENT_W-0.35,h:boxH-0.5,fontSize:FS.body,color:C.dark,fontFace:FB,wrap:true,valign:'top'});
       });
-      (phase.problems||[]).forEach((pr,pi)=>{
-        const sl1=contentSlide(`${lbl} — Problem ${pi+1}`,lbl);
-        sl1.addText('SOLVE ON YOUR OWN',{x:0.4,y:0.82,w:9.2,h:0.28,fontSize:11,bold:true,color:C.gold,charSpacing:3,fontFace:FB});
-        problemCard(sl1,pr.problem,pr.label||`Problem ${pi+1}`,1.15);
-        sl1.addShape(pres.ShapeType.rect,{x:0.4,y:3.65,w:9.2,h:0.68,fill:{color:C.offwhite},line:{color:C.light,width:1}});
-        sl1.addText('💬  Discuss with your seatmate.',{x:0.55,y:3.65,w:9.0,h:0.68,fontSize:16,italic:true,color:C.muted,fontFace:FB,valign:'middle',margin:0});
-        const sl2=contentSlide(`${lbl} — Problem ${pi+1} ✓ Answer Revealed`,lbl);
-        sl2.background={color:'FEFDF8'};problemCard(sl2,pr.problem,pr.label||`Problem ${pi+1}`,0.82);answerCard(sl2,pr.answer,3.25);
+    }
+
+    // ════════════════════════════════════════
+    // SLIDE 4 — Pre-Lesson Hook
+    // ════════════════════════════════════════
+    {
+      const pre = d.prelesson||{};
+      const sl  = contentSlide(`Pre-Lesson Hook · ${pre.duration||''}`, 'Pre-Lesson');
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y:BODY_TOP,w:CONTENT_W,h:0.6,fill:{color:C.gold},line:{color:C.gold,width:0}});
+      sl.addText(pre.title||'Hook Activity',
+        {x:CONTENT_X+0.15,y:BODY_TOP,w:CONTENT_W-0.2,h:0.6,fontSize:26,bold:true,color:C.dark,fontFace:FH,valign:'middle'});
+      if(pre.description){
+        sl.addText(String(pre.description),
+          {x:CONTENT_X,y:BODY_TOP+0.68,w:CONTENT_W,h:0.65,fontSize:FS.subtext,italic:true,color:C.muted,fontFace:FB,wrap:true});
+      }
+      const steps = cap(pre.steps||[], 4);
+      if(steps.length){
+        sl.addText(numberedItems(steps, 4),
+          {x:CONTENT_X+0.1,y:BODY_TOP+1.42,w:CONTENT_W-0.1,h:BODY_H-1.48,valign:'top'});
+      }
+    }
+
+    // ════════════════════════════════════════
+    // PHASES
+    // ════════════════════════════════════════
+    (d.flow||[]).forEach(phase => {
+      const lbl = phase.phase||'Phase';
+      dividerSlide(lbl, `${phase.title||''} · ${phase.duration||''}`);
+
+      // Activities — 3 per slide max, splits automatically
+      if(phase.activities?.length){
+        const acts     = phase.activities;
+        const perSlide = 3;
+        for(let start=0; start<acts.length; start+=perSlide){
+          const chunk      = acts.slice(start, start+perSlide);
+          const totalSlides= Math.ceil(acts.length/perSlide);
+          const slideNum   = Math.floor(start/perSlide)+1;
+          const title      = totalSlides > 1
+            ? `${lbl} — Activities (${slideNum} of ${totalSlides})`
+            : `${lbl} — Activities`;
+          const sl = contentSlide(title, lbl);
+          sl.addText(bulletItems(chunk, 3),
+            {x:CONTENT_X+0.1,y:BODY_TOP,w:CONTENT_W-0.1,h:BODY_H,valign:'top'});
+        }
+      }
+
+      // Worked Examples
+      (phase.workedExamples||[]).forEach((ex, ei) => {
+        // Slide A — Problem + Steps (no answer)
+        const sl1 = contentSlide(`Worked Example ${ei+1} — ${ex.title||''}`, lbl);
+        sl1.addText('WORK THROUGH THIS TOGETHER',
+          {x:CONTENT_X,y:BODY_TOP,w:CONTENT_W,h:0.3,fontSize:13,bold:true,color:C.gold,charSpacing:3,fontFace:FB});
+        problemCard(sl1, ex.problem, `Problem ${ei+1}`, BODY_TOP+0.35);
+        const steps = cap(ex.solution||[], 5);
+        if(steps.length){
+          const stepsY = BODY_TOP + 0.35 + 2.2 + 0.15;
+          sl1.addText('Solution Steps:',
+            {x:CONTENT_X,y:stepsY,w:3,h:0.35,fontSize:FS.label+2,bold:true,color:C.muted,fontFace:FB});
+          sl1.addText(numberedItems(steps, 5),
+            {x:CONTENT_X+0.1,y:stepsY+0.38,w:CONTENT_W-0.1,h:FOOTER_Y-stepsY-0.48,valign:'top'});
+        }
+
+        // Slide B — Answer Revealed
+        const sl2 = contentSlide(`Worked Example ${ei+1} — Answer Revealed`, lbl);
+        problemCard(sl2, ex.problem, `Problem ${ei+1}`, BODY_TOP);
+        const allSteps = cap(ex.solution||[], 4);
+        if(allSteps.length){
+          const stepsY2 = BODY_TOP + 2.2 + 0.12;
+          sl2.addText(numberedItems(allSteps, 4),
+            {x:CONTENT_X+0.1,y:stepsY2,w:CONTENT_W-0.1,h:FOOTER_Y-0.95-stepsY2,valign:'top'});
+        }
+        answerBar(sl2, ex.answer||'');
+      });
+
+      // Practice Problems
+      (phase.problems||[]).forEach((pr, pi) => {
+        // Slide A — Problem only
+        const sl1 = contentSlide(`${lbl} — Problem ${pi+1}`, lbl);
+        sl1.addText('SOLVE ON YOUR OWN',
+          {x:CONTENT_X,y:BODY_TOP,w:CONTENT_W,h:0.3,fontSize:13,bold:true,color:C.gold,charSpacing:3,fontFace:FB});
+        problemCard(sl1, pr.problem, pr.label||`Problem ${pi+1}`, BODY_TOP+0.35);
+        sl1.addShape(pres.ShapeType.rect,
+          {x:CONTENT_X,y:BODY_TOP+2.7,w:CONTENT_W,h:0.72,fill:{color:C.offwhite},line:{color:C.light,width:1}});
+        sl1.addText('💬  Discuss your solution with a seatmate.',
+          {x:CONTENT_X+0.15,y:BODY_TOP+2.7,w:CONTENT_W-0.2,h:0.72,fontSize:FS.subtext,italic:true,color:C.muted,fontFace:FB,valign:'middle'});
+
+        // Slide B — Answer Revealed
+        const sl2 = contentSlide(`${lbl} — Problem ${pi+1} ✓ Answer Revealed`, lbl);
+        sl2.background = {color:'FEFDF8'};
+        problemCard(sl2, pr.problem, pr.label||`Problem ${pi+1}`, BODY_TOP);
+        answerCard(sl2, pr.answer||'', BODY_TOP+2.35);
       });
     });
 
-    // Wrap-up
-    {const wu=d.wrapup||{};dividerSlide('WRAP-UP',wu.duration||'');
-    const sl=contentSlide('Consolidation & Exit Ticket','Wrap-Up');
-    if(wu.consolidation){sl.addShape(pres.ShapeType.rect,{x:0.4,y:0.82,w:9.2,h:1.05,fill:{color:C.offwhite},line:{color:C.light,width:1}});
-    sl.addShape(pres.ShapeType.rect,{x:0.4,y:0.82,w:0.12,h:1.05,fill:{color:C.blue},line:{color:C.blue,width:0}});
-    sl.addText('Consolidation',{x:0.65,y:0.87,w:8.8,h:0.28,fontSize:12,bold:true,color:C.blue,fontFace:FB,margin:0});
-    sl.addText(String(wu.consolidation),{x:0.65,y:1.15,w:8.8,h:0.65,fontSize:16,color:C.dark,fontFace:FB,margin:0,wrap:true});}
-    problemCard(sl,wu.exitTicket?.question||'','EXIT TICKET',2.05);
-    sl.addShape(pres.ShapeType.rect,{x:0.4,y:4.1,w:9.2,h:0.52,fill:{color:C.offwhite},line:{color:C.light,width:1}});
-    sl.addText('Write your answer on paper and pass before leaving.',{x:0.55,y:4.1,w:9.0,h:0.52,fontSize:14,italic:true,color:C.muted,fontFace:FB,valign:'middle'});
-    const sl2=contentSlide('Exit Ticket ✓ Answer Revealed','Wrap-Up');
-    sl2.background={color:'FEFDF8'};problemCard(sl2,wu.exitTicket?.question||'','EXIT TICKET',0.82);answerCard(sl2,wu.exitTicket?.answer||'',3.2);}
+    // ════════════════════════════════════════
+    // WRAP-UP
+    // ════════════════════════════════════════
+    {
+      const wu = d.wrapup||{};
+      dividerSlide('WRAP-UP', wu.duration||'');
 
-    // Assessment
-    {const sl=contentSlide('Assessment & Extended Learning','Assessment');
-    sl.addText('Formative Assessment',{x:0.4,y:0.82,w:9.2,h:0.35,fontSize:15,bold:true,color:C.blue,fontFace:FB});
-    sl.addText(bulletItems(cap(d.formativeAssessment||[],3),3,18),{x:0.5,y:1.18,w:9.1,h:1.6,valign:'top'});
-    sl.addText('Extended Learning / Homework',{x:0.4,y:3.0,w:9.2,h:0.35,fontSize:15,bold:true,color:C.green,fontFace:FB});
-    sl.addText(bulletItems(cap(d.extendedLearning||[],3),3,18),{x:0.5,y:3.38,w:9.1,h:1.95,valign:'top'});}
+      // Consolidation + Exit Ticket
+      const sl = contentSlide('Consolidation & Exit Ticket','Wrap-Up');
+      if(wu.consolidation){
+        sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y:BODY_TOP,w:CONTENT_W,h:1.1,fill:{color:C.offwhite},line:{color:C.light,width:1}});
+        sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y:BODY_TOP,w:0.14,h:1.1,fill:{color:C.blue},line:{color:C.blue,width:0}});
+        sl.addText('Consolidation',
+          {x:CONTENT_X+0.25,y:BODY_TOP+0.08,w:CONTENT_W-0.3,h:0.3,fontSize:FS.label,bold:true,color:C.blue,fontFace:FB});
+        sl.addText(String(wu.consolidation),
+          {x:CONTENT_X+0.25,y:BODY_TOP+0.4,w:CONTENT_W-0.35,h:0.65,fontSize:FS.body,color:C.dark,fontFace:FB,wrap:true,valign:'top'});
+      }
+      problemCard(sl, wu.exitTicket?.question||'', 'EXIT TICKET', BODY_TOP+1.2);
+      sl.addShape(pres.ShapeType.rect,
+        {x:CONTENT_X,y:BODY_TOP+3.55,w:CONTENT_W,h:0.6,fill:{color:C.offwhite},line:{color:C.light,width:1}});
+      sl.addText('✏️  Write your answer on a piece of paper and pass before leaving.',
+        {x:CONTENT_X+0.15,y:BODY_TOP+3.55,w:CONTENT_W-0.2,h:0.6,fontSize:FS.subtext,italic:true,color:C.muted,fontFace:FB,valign:'middle'});
 
-    // Answer Key
+      // Exit Ticket — Answer Revealed
+      const sl2 = contentSlide('Exit Ticket ✓ Answer Revealed','Wrap-Up');
+      sl2.background = {color:'FEFDF8'};
+      problemCard(sl2, wu.exitTicket?.question||'', 'EXIT TICKET', BODY_TOP);
+      answerCard(sl2, wu.exitTicket?.answer||'', BODY_TOP+2.35);
+    }
+
+    // ════════════════════════════════════════
+    // ASSESSMENT & EXTENDED LEARNING
+    // ════════════════════════════════════════
+    {
+      const sl = contentSlide('Assessment & Extended Learning','Assessment');
+      const halfH = (BODY_H - 0.15) / 2;
+      // Formative Assessment block
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y:BODY_TOP,w:CONTENT_W,h:0.38,fill:{color:C.blue},line:{color:C.blue,width:0}});
+      sl.addText('Formative Assessment',
+        {x:CONTENT_X+0.15,y:BODY_TOP,w:CONTENT_W-0.2,h:0.38,fontSize:16,bold:true,color:C.white,fontFace:FB,valign:'middle'});
+      sl.addText(bulletItems(cap(d.formativeAssessment||[],3),3),
+        {x:CONTENT_X+0.1,y:BODY_TOP+0.42,w:CONTENT_W-0.1,h:halfH-0.42,valign:'top'});
+      // Extended Learning block
+      const extY = BODY_TOP + halfH + 0.15;
+      sl.addShape(pres.ShapeType.rect,{x:CONTENT_X,y:extY,w:CONTENT_W,h:0.38,fill:{color:C.green},line:{color:C.green,width:0}});
+      sl.addText('Extended Learning / Homework',
+        {x:CONTENT_X+0.15,y:extY,w:CONTENT_W-0.2,h:0.38,fontSize:16,bold:true,color:C.white,fontFace:FB,valign:'middle'});
+      sl.addText(bulletItems(cap(d.extendedLearning||[],3),3),
+        {x:CONTENT_X+0.1,y:extY+0.42,w:CONTENT_W-0.1,h:halfH-0.42,valign:'top'});
+    }
+
+    // ════════════════════════════════════════
+    // ANSWER KEY
+    // ════════════════════════════════════════
     dividerSlide('ANSWER KEY','All Activities');
-    const akRows=d.answerKey||[];const PER_SLIDE=5;
-    for(let start=0;start<Math.max(akRows.length,1);start+=PER_SLIDE){
-      const chunk=akRows.slice(start,start+PER_SLIDE);
-      const sl=contentSlide(`Answer Key (${start+1}–${Math.min(start+PER_SLIDE,akRows.length)} of ${akRows.length})`,'Answer Key');
-      const header=[{text:'Activity',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:13,fontFace:FB}},{text:'Item',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:13,fontFace:FB}},{text:'Solution / Answer',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:13,fontFace:FB}}];
-      sl.addTable([header,...chunk.map((item,i)=>[
-        {text:item.activity||'',options:{fontSize:13,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
-        {text:item.item||'',options:{fontSize:13,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
-        {text:item.solution||'',options:{fontSize:13,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
-      ])],{x:0.3,y:0.85,w:9.4,colW:[1.9,2.3,5.2],border:{pt:1,color:'C8D8EE'},rowH:0.62});}
+    const akRows   = d.answerKey||[];
+    const PER_SLIDE = 5;
+    for(let start=0; start<Math.max(akRows.length,1); start+=PER_SLIDE){
+      const chunk = akRows.slice(start, start+PER_SLIDE);
+      const sl    = contentSlide(
+        `Answer Key (${start+1}–${Math.min(start+PER_SLIDE,akRows.length)} of ${akRows.length})`,
+        'Answer Key'
+      );
+      const header = [
+        {text:'Activity',        options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:16,fontFace:FB}},
+        {text:'Item',            options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:16,fontFace:FB}},
+        {text:'Solution / Answer',options:{bold:true,color:C.white,fill:{color:C.navy},fontSize:16,fontFace:FB}},
+      ];
+      sl.addTable(
+        [header, ...chunk.map((item,i) => [
+          {text:item.activity||'', options:{fontSize:18,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
+          {text:item.item||'',     options:{fontSize:18,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
+          {text:item.solution||'', options:{fontSize:18,color:C.dark,fontFace:FB,fill:{color:i%2===0?'EAF2FB':C.white}}},
+        ])],
+        {x:CONTENT_X, y:BODY_TOP, w:CONTENT_W, colW:[2.5,3.0,7.0], border:{pt:1,color:'C8D8EE'}, rowH:0.82}
+      );
+    }
 
-    // Closing
-    {const sl=pres.addSlide();sl.background={color:C.navy};
-    sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
-    sl.addText('END OF LESSON',{x:0.75,y:1.4,w:12,h:1.1,fontSize:44,bold:true,color:C.white,fontFace:FH,align:'center'});
-    sl.addText(d.lessonTitle||'',{x:0.75,y:2.7,w:12,h:0.9,fontSize:18,color:'8BA4CC',fontFace:FB,align:'center',wrap:true});
-    sl.addText(d.teacherName||'',{x:0.75,y:3.7,w:12,h:0.5,fontSize:15,color:C.gold,fontFace:FB,align:'center'});
-    addFooter(sl,'End');}
+    // ════════════════════════════════════════
+    // CLOSING SLIDE
+    // ════════════════════════════════════════
+    {
+      const sl = pres.addSlide();
+      sl.background = {color:C.navy};
+      sl.addShape(pres.ShapeType.rect,{x:0,y:0,w:0.5,h:H,fill:{color:C.gold},line:{color:C.gold,width:0}});
+      sl.addText('END OF LESSON',
+        {x:0.75,y:1.8,w:W-1,h:1.2,fontSize:FS.divider,bold:true,color:C.white,fontFace:FH,align:'center'});
+      sl.addText(d.lessonTitle||'',
+        {x:0.75,y:3.2,w:W-1,h:0.9,fontSize:22,color:'8BA4CC',fontFace:FB,align:'center',wrap:true});
+      sl.addText(d.teacherName||'',
+        {x:0.75,y:4.25,w:W-1,h:0.5,fontSize:20,color:C.gold,fontFace:FB,align:'center'});
+      addFooter(sl,'End');
+    }
 
-    const safeName=(d.lessonTitle||'LessonPlan').replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'_').slice(0,40);
+    const safeName = (d.lessonTitle||'LessonPlan')
+      .replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'_').slice(0,40);
     await pres.writeFile({fileName:`LessonPro_${safeName}.pptx`});
-    pptxBtn.disabled=false; pptxBtn.textContent='📊 Download PowerPoint (.pptx)';
+    pptxBtn.disabled = false; pptxBtn.textContent = '📊 Download PowerPoint (.pptx)';
 
   } catch(err) {
-    pptxBtn.disabled=false; pptxBtn.textContent='📊 Download PowerPoint (.pptx)';
+    pptxBtn.disabled = false; pptxBtn.textContent = '📊 Download PowerPoint (.pptx)';
     alert('Error generating PowerPoint: ' + err.message);
     console.error(err);
   }
 }
+
 </script>
 </body>
 </html>
